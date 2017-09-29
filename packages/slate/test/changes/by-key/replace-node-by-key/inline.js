@@ -3,17 +3,14 @@
 import h from '../../../helpers/h'
 
 export default function (change) {
-  change.insertBlock('quote')
+  change.replaceNodeByKey('a', { kind: 'inline', type: 'emoji', isVoid: true })
 }
 
 export const input = (
   <state>
     <document>
       <paragraph>
-        <cursor />
-      </paragraph>
-      <paragraph>
-        not empty
+        one <link key="a">two</link>
       </paragraph>
     </document>
   </state>
@@ -22,12 +19,8 @@ export const input = (
 export const output = (
   <state>
     <document>
-      <paragraph />
-      <quote>
-        <cursor />
-      </quote>
       <paragraph>
-        not empty
+        one <emoji />
       </paragraph>
     </document>
   </state>

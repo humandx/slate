@@ -1,7 +1,7 @@
 {
   "name": "slate-dev-logger",
   "description": "A simple, development-only logger for Slate.",
-  "version": "0.1.6",
+  "version": "0.1.10",
   "license": "MIT",
   "repository": "git://github.com/ianstormtaylor/slate.git",
   "main": "./lib/index.js",
@@ -9,7 +9,7 @@
     "babel-cli": "^6.10.1",
     "browserify": "^13.0.1",
     "mocha": "^2.5.3",
-    "slate": "^0.24.5",
+    "slate": "^0.25.2",
     "uglify-js": "^2.7.0"
   },
   "scripts": {
@@ -17,7 +17,7 @@
     "build:max": "mkdir -p ./dist && NODE_ENV=production browserify ./src/index.js --transform babelify --transform envify --transform [ browserify-global-shim --global ] --standalone SlateDevLogger > ./dist/slate-dev-logger.js",
     "build:min": "mkdir -p ./dist && NODE_ENV=production browserify ./src/index.js --transform babelify --transform envify --transform [ browserify-global-shim --global ] --transform uglifyify --standalone SlateDevLogger | uglifyjs > ./dist/slate-dev-logger.min.js",
     "clean": "rm -rf ./dist ./lib ./node_modules",
-    "prepublish": "yarn run build:max && yarn run build:min",
+    "prepublish": "yarn run build && yarn run build:max && yarn run build:min",
     "watch": "babel --watch --out-dir ./lib ./src --source-maps inline"
   },
   "keywords": [
