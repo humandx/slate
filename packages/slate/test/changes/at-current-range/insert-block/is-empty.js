@@ -22,6 +22,7 @@ export const input = (
 export const output = (
   <state>
     <document>
+      <paragraph />
       <quote>
         <cursor />
       </quote>

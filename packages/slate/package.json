@@ -1,7 +1,7 @@
 {
   "name": "slate",
   "description": "A completely customizable framework for building rich text editors.",
-  "version": "0.24.5",
+  "version": "0.25.2",
   "license": "MIT",
   "repository": "git://github.com/ianstormtaylor/slate.git",
   "main": "./lib/index.js",
@@ -13,7 +13,7 @@
     "is-empty": "^1.0.0",
     "is-plain-object": "^2.0.4",
     "lodash": "^4.17.4",
-    "slate-dev-logger": "^0.1.6",
+    "slate-dev-logger": "^0.1.10",
     "type-of": "^2.0.1"
   },
   "peerDependencies": {
@@ -23,7 +23,7 @@
   "devDependencies": {
     "babel-cli": "^6.10.1",
     "browserify": "^13.0.1",
-    "slate-hyperscript": "^0.1.5",
+    "slate-hyperscript": "^0.1.9",
     "uglify-js": "^2.7.0"
   },
   "scripts": {
@@ -31,7 +31,7 @@
     "build:max": "mkdir -p ./dist && NODE_ENV=production browserify ./src/index.js --transform babelify --transform envify --transform [ browserify-global-shim --global ] --standalone Slate > ./dist/slate.js",
     "build:min": "mkdir -p ./dist && NODE_ENV=production browserify ./src/index.js --transform babelify --transform envify --transform [ browserify-global-shim --global ] --transform uglifyify --standalone Slate | uglifyjs > ./dist/slate.min.js",
     "clean": "rm -rf ./dist ./lib ./node_modules",
-    "prepublish": "yarn run build:max && yarn run build:min",
+    "prepublish": "yarn run build && yarn run build:max && yarn run build:min",
     "watch": "babel --watch --out-dir ./lib ./src --source-maps inline"
   },
   "browserify-global-shim": {
