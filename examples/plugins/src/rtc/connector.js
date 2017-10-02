@@ -3,13 +3,12 @@ import Bluebird from "bluebird"
 import Humps from "humps"
 import io from "socket.io-client"
 
-// Config module
-// import Config from "../config"
+// Slate modules
+// N/A
 
-// RTC module
+// Cases module
 import EmitEvents from "./emitEventTypes"
 import IncomingEvents from "./incomingEventTypes"
-import {store} from "../../../index"
 
 
 /**
@@ -43,11 +42,12 @@ class connector {
      * @param {string} rtsUrl: URL pointing to the real time server.
      * @param {object} store: Redux store to be used to dispatch actions.
      */
-    constructor(userId, authToken, encryptedAuthToken, rtsUrl) {
+    constructor(userId, authToken, encryptedAuthToken, rtsUrl, store) {
         if (!connectorInstance) {
             connectorInstance = this
         }
         this.userId = userId
+        this.store = store
 
         var query = [
             "Auth-Token=", encodeURIComponent(authToken), "&",
@@ -184,7 +184,7 @@ class connector {
      * @returns {void}
      */
     setupSocketReceivers() {
-        let incomingEvents = IncomingEvents(store)
+        let incomingEvents = IncomingEvents(this.store)
         Object.keys(incomingEvents).forEach((key) => {
             this.socket.on(
                 incomingEvents[key].code, incomingEvents[key].action

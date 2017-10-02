@@ -7,7 +7,6 @@ import uuid from "uuid/v4"
 
 // Cases modules
 import {updateCaseActions, updateCase, thisUserIsTypingActions, thisUserIsTyping, setUserId} from "./store/cases/actions"
-import {store} from "../../index"
 
 /**
  * A Slate plugin to send and receive change messages from socket.io
@@ -21,8 +20,8 @@ function SyncViaSocket(options = {}) {
    * options contains: userId, rtsUrl, userAuthToken, encryptedAuthToken
    * showIsTyping
    */
-  let { userId, userAuthToken, encryptedAuthToken, rtsUrl, showIsTyping } = options
-  new Connector(userId, userAuthToken, encryptedAuthToken, rtsUrl)
+  let { userId, userAuthToken, encryptedAuthToken, rtsUrl, showIsTyping, store } = options
+  new Connector(userId, userAuthToken, encryptedAuthToken, rtsUrl, store)
 
   /**
    * On change.
@@ -83,7 +82,9 @@ function SyncViaSocket(options = {}) {
 
 
 function shouldSendOperationToSocket(operations) {
-    if (operations.length > 1) {
+    if (operations.length == 0) {
+      return false
+    } else if (operations.length > 1) {
       return true
     } else if (operations[0]["type"] == "set_selection") {
         return false

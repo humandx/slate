@@ -1,16 +1,22 @@
+// 3rd party modules
 import Immutable from "immutable"
-import SyncViaSocket from './src/index'
-import Plain from 'slate-plain-serializer'
-import { Editor } from 'slate-react'
 import { connect } from "react-redux"
 import { bindActionCreators }  from 'redux'
 
-import React from 'react'
+// Slate modules
 import AutoReplaceText from 'slate-auto-replace-text'
 import CollapseOnEscape from 'slate-collapse-on-escape'
+import Plain from 'slate-plain-serializer'
+import React from 'react'
 import SoftBreak from 'slate-soft-break'
-import { setUserId } from "./src/store/cases/actions"
+import { Editor } from 'slate-react'
 
+// Cases modules
+import { store } from "../index"
+import { setUserId } from "./src/store/cases/actions"
+import SyncViaSocket from './src/index'
+
+// Global vars
 const USER_ID = 152
 
 /**
@@ -38,27 +44,6 @@ function WordCount(options) {
 }
 
 /**
- * Plugins.
- */
-let plugins = [
-  AutoReplaceText('(c)', '©'),
-  AutoReplaceText('(r)', '®'),
-  AutoReplaceText('(tm)', '™'),
-  CollapseOnEscape(),
-  SoftBreak(),
-  WordCount(),
-  SyncViaSocket({
-    userId: USER_ID,
-    useCookie: true,
-    userAuthToken: "",
-    encryptedAuthToken: "",
-    rtsUrl: "http://localhost:5000/",
-    showIsTyping: true
-  })
-]
-
-
-/**
  * The plugins example.
  *
  * @type {Component}
@@ -72,6 +57,27 @@ class Plugins extends React.Component {
    */
   constructor(props) {
     super(props)
+    /**
+     * Plugins.
+     */
+    this.plugins = [
+      AutoReplaceText('(c)', '©'),
+      AutoReplaceText('(r)', '®'),
+      AutoReplaceText('(tm)', '™'),
+      CollapseOnEscape(),
+      SoftBreak(),
+      WordCount(),
+      SyncViaSocket({
+        userId: USER_ID,
+        useCookie: true,
+        userAuthToken: "",
+        encryptedAuthToken: "",
+        rtsUrl: "http://localhost:5000/",
+        showIsTyping: true,
+        store: store
+      })
+    ]
+
     this.props.setUserId(-1)
   }
 
@@ -85,7 +91,7 @@ class Plugins extends React.Component {
       return (
         <Editor
           placeholder={'Enter some text...'}
-          plugins={plugins}
+          plugins={this.plugins}
           state={this.props.state}
           onChange={this.onChange}
           activeUsers={this.props.activeUsers}
