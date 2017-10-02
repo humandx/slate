@@ -1,0 +1,830 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`slate-react-native rendering custom-block 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View>
+    <Text
+      accessible={true}
+      allowFontScaling={true}
+      disabled={false}
+      ellipsizeMode="tail"
+    >
+      word
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-block-multiple 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View>
+    <Text
+      accessible={true}
+      allowFontScaling={true}
+      disabled={false}
+      ellipsizeMode="tail"
+    >
+      word
+    </Text>
+  </View>
+  <View>
+    <Text
+      accessible={true}
+      allowFontScaling={true}
+      disabled={false}
+      ellipsizeMode="tail"
+    >
+      word
+    </Text>
+  </View>
+  <View>
+    <Text
+      accessible={true}
+      allowFontScaling={true}
+      disabled={false}
+      ellipsizeMode="tail"
+    >
+      word
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-block-void 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    data-slate-void={true}
+  >
+    <View
+      style={
+        Object {
+          "backgroundColor": "transparent",
+          "flex": 1,
+          "width": 0,
+        }
+      }
+    >
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width="true"
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+    <View
+      contenteditable={false}
+      style={
+        Object {
+          "flex": 1,
+          "width": "100%",
+        }
+      }
+    >
+      <Image
+        source={
+          Object {
+            "uri": "https://example.com/image.png",
+          }
+        }
+      />
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-decorator 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        o
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+        style={
+          Object {
+            "fontWeight": "bold",
+          }
+        }
+      >
+        n
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        e
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-inline 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+    <View
+      onClick={[Function]}
+    >
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        word
+      </Text>
+    </View>
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-inline-multiple 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+    <View
+      onClick={[Function]}
+    >
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        word
+      </Text>
+    </View>
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+    <View
+      onClick={[Function]}
+    >
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        word
+      </Text>
+    </View>
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+    <View
+      onClick={[Function]}
+    >
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        word
+      </Text>
+    </View>
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-inline-void 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+    <View
+      data-slate-void={true}
+    >
+      <View
+        style={
+          Object {
+            "backgroundColor": "transparent",
+          }
+        }
+      >
+        <View>
+          <Text
+            accessible={true}
+            allowFontScaling={true}
+            data-slate-zero-width="true"
+            disabled={false}
+            ellipsizeMode="tail"
+          >
+             
+          </Text>
+        </View>
+      </View>
+      <View
+        contenteditable={false}
+      >
+        <Image
+          source={
+            Object {
+              "uri": "",
+            }
+          }
+        />
+      </View>
+    </View>
+    <View>
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          data-slate-zero-width={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+           
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-mark-as-component 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        one
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+        style={
+          Object {
+            "fontWeight": "bold",
+          }
+        }
+      >
+        two
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        three
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-mark-as-function 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View>
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        one
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+        style={
+          Object {
+            "fontWeight": "bold",
+          }
+        }
+      >
+        two
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        three
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-mark-as-object 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        one
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+        style={
+          Object {
+            "fontWeight": "bold",
+          }
+        }
+      >
+        two
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        three
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering custom-mark-as-string 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        one
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+        style={
+          Object {
+            "fontWeight": "bold",
+          }
+        }
+      >
+        two
+      </Text>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        three
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering default-block 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        word
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering default-block-with-inline 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <View>
+        <View
+          data-slate-zero-width={true}
+        >
+           
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        Object {
+          "position": "relative",
+        }
+      }
+    >
+      <View>
+        <View>
+          word
+        </View>
+      </View>
+    </View>
+    <View>
+      <View>
+        <View
+          data-slate-zero-width={true}
+        >
+           
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering empty-block 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+         
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering empty-block-with-inline 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+         
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering nested-text-direction 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View
+      dir="rtl"
+      style={
+        Object {
+          "position": "relative",
+        }
+      }
+    >
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+          مرحبا بالعالم
+        </Text>
+      </View>
+    </View>
+    <View
+      dir="rtl"
+      style={
+        Object {
+          "position": "relative",
+        }
+      }
+    >
+      <View>
+        <Text
+          accessible={true}
+          allowFontScaling={true}
+          disabled={false}
+          ellipsizeMode="tail"
+        >
+          שלום עולם
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`slate-react-native rendering text-direction 1`] = `
+<View
+  contenteditable={true}
+  data-slate-editor={true}
+  role="textbox"
+>
+  <View
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        Hello, world!
+      </Text>
+    </View>
+  </View>
+  <View
+    dir="rtl"
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        مرحبا بالعالم
+      </Text>
+    </View>
+  </View>
+  <View
+    dir="rtl"
+    style={
+      Object {
+        "position": "relative",
+      }
+    }
+  >
+    <View>
+      <Text
+        accessible={true}
+        allowFontScaling={true}
+        disabled={false}
+        ellipsizeMode="tail"
+      >
+        שלום עולם
+      </Text>
+    </View>
+  </View>
+</View>
+`;
