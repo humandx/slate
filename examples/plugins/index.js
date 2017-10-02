@@ -1,11 +1,17 @@
-
+import Immutable from "immutable"
+import SyncViaSocket from './src/index'
 import Plain from 'slate-plain-serializer'
 import { Editor } from 'slate-react'
+import { connect } from "react-redux"
+import { bindActionCreators }  from 'redux'
 
 import React from 'react'
 import AutoReplaceText from 'slate-auto-replace-text'
 import CollapseOnEscape from 'slate-collapse-on-escape'
 import SoftBreak from 'slate-soft-break'
+import { setUserId } from "./src/store/cases/actions"
+
+const USER_ID = 152
 
 /**
  * Word Count plugin
@@ -31,19 +37,26 @@ function WordCount(options) {
   }
 }
 
-
 /**
  * Plugins.
  */
-
-const plugins = [
+let plugins = [
   AutoReplaceText('(c)', '©'),
   AutoReplaceText('(r)', '®'),
   AutoReplaceText('(tm)', '™'),
   CollapseOnEscape(),
   SoftBreak(),
-  WordCount()
+  WordCount(),
+  SyncViaSocket({
+    userId: USER_ID,
+    useCookie: true,
+    userAuthToken: "",
+    encryptedAuthToken: "",
+    rtsUrl: "http://localhost:5000/",
+    showIsTyping: true
+  })
 ]
+
 
 /**
  * The plugins example.
@@ -52,50 +65,32 @@ const plugins = [
  */
 
 class Plugins extends React.Component {
-
   /**
    * Deserialize the initial editor state.
    *
    * @type {Object}
    */
-
-  state = {
-    state: Plain.deserialize(`This example shows how you can extend Slate with plugins! It uses four fairly simple plugins, but you can use any plugins you want, or write your own!
-
-The first is an "auto replacer". Try typing "(c)" and you'll see it turn into a copyright symbol automatically!
-
-The second is a simple plugin to collapse the selection whenever the escape key is pressed. Try selecting some text and pressing escape.
-
-The third is another simple plugin that inserts a "soft" break when enter is pressed instead of creating a new block. Try pressing enter!
-
-The fourth is an example of using the plugin.render property to create a higher-order-component.`)
+  constructor(props) {
+    super(props)
+    this.props.setUserId(-1)
   }
 
-  /**
-   * On change.
-   *
-   * @param {Change} change
-   */
-
-  onChange = ({ state }) => {
-    this.setState({ state })
-  }
 
   /**
    * Render the editor.
    *
    * @return {Component} component
    */
-
   render() {
-    return (
-      <Editor
-        placeholder={'Enter some text...'}
-        plugins={plugins}
-        state={this.state.state}
-        onChange={this.onChange}
-      />
-    )
+      return (
+        <Editor
+          placeholder={'Enter some text...'}
+          plugins={plugins}
+          state={this.props.state}
+          onChange={this.onChange}
+          activeUsers={this.props.activeUsers}
+        />
+      )
   }
 
 }
@@ -104,4 +99,17 @@ The fourth is an example of using the plugin.render property to create a higher-
  * Export.
  */
 
-export default Plugins
+
+function mapStateToProps(state) {
+    return {
+        state: state.cases.get("state"),
+        activeUsers: state.cases.get("activeUsers")
+    }
+}
+
+function mapDispatchToProps(dispatch) {
+    return bindActionCreators({
+        setUserId: setUserId,
+    }, dispatch);
+};
+export default connect(mapStateToProps, mapDispatchToProps)(Plugins)
