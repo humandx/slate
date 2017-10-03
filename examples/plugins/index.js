@@ -1,21 +1,21 @@
 // 3rd party modules
 import Immutable from "immutable"
-import PropTypes from 'prop-types'
+import PropTypes from "prop-types"
 import { connect } from "react-redux"
-import { bindActionCreators }  from 'redux'
+import { bindActionCreators }  from "redux"
 
 // Slate modules
-import AutoReplaceText from 'slate-auto-replace-text'
-import CollapseOnEscape from 'slate-collapse-on-escape'
-import Plain from 'slate-plain-serializer'
-import React from 'react'
-import SoftBreak from 'slate-soft-break'
-import { Editor } from 'slate-react'
+import AutoReplaceText from "slate-auto-replace-text"
+import CollapseOnEscape from "slate-collapse-on-escape"
+import Plain from "slate-plain-serializer"
+import React from "react"
+import SoftBreak from "slate-soft-break"
+import { Editor } from "slate-react"
 
 // Cases modules
 import { store } from "../index"
 import { setUserId } from "./src/store/cases/actions"
-import SyncViaSocket from './src/index'
+import SyncViaSocket from "./src/index"
 
 // Global vars
 const USER_ID = 152
@@ -36,7 +36,7 @@ function WordCount(options) {
             {props.children}
           </div>
           <span className="word-counter">
-            Word Count: {props.state.document.text.split(' ').length}
+            Word Count: {props.state.document.text.split(" ").length}
           </span>
         </div>
       )
@@ -64,9 +64,9 @@ class Plugins extends React.Component {
      * Plugins.
      */
     this.plugins = [
-      AutoReplaceText('(c)', '©'),
-      AutoReplaceText('(r)', '®'),
-      AutoReplaceText('(tm)', '™'),
+      AutoReplaceText("(c)", "©"),
+      AutoReplaceText("(r)", "®"),
+      AutoReplaceText("(tm)", "™"),
       CollapseOnEscape(),
       SoftBreak(),
       WordCount(),
@@ -93,7 +93,7 @@ class Plugins extends React.Component {
   render() {
       return (
         <Editor
-          placeholder={'Enter some text...'}
+          placeholder={"Enter some text..."}
           plugins={this.plugins}
           state={this.props.state}
           onChange={this.onChange}
