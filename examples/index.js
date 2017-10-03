@@ -1,4 +1,3 @@
-
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { HashRouter, NavLink, Route, Redirect, Switch } from 'react-router-dom'
@@ -25,6 +24,20 @@ import Tables from './tables'
 import DevHugeDocument from './dev/huge-document'
 import DevPerformancePlain from './dev/performance-plain'
 import DevPerformanceRich from './dev/performance-rich'
+
+import {applyMiddleware, createStore} from "redux"
+import {Provider} from "react-redux"
+import createLogger from "redux-logger"
+import promise from "redux-promise"
+import thunk from "redux-thunk"
+import allReducers from "./plugins/src/store"
+
+const logger = createLogger();
+export const store = createStore(
+    allReducers,
+    applyMiddleware(thunk, promise, logger)
+)
+
 
 /**
  * Environment.
@@ -75,32 +88,34 @@ class App extends React.Component {
 
   render() {
     return (
-      <div className="app">
-        <div className="nav">
-          <span className="nav-title">Slate Examples</span>
-          <div className="nav-links">
-            <a className="nav-link" href="https://github.com/ianstormtaylor/slate">GitHub</a>
-            <a className="nav-link" href="https://docs.slatejs.org/">Docs</a>
+      <Provider store={store}>
+        <div className="app">
+          <div className="nav">
+            <span className="nav-title">Slate Examples</span>
+            <div className="nav-links">
+              <a className="nav-link" href="https://github.com/ianstormtaylor/slate">GitHub</a>
+              <a className="nav-link" href="https://docs.slatejs.org/">Docs</a>
+            </div>
+          </div>
+          <div className="tabs">
+            {EXAMPLES.map(([ name, Component, path, isDev ]) => (
+              (NODE_ENV != 'production' || !isDev) && (
+                <NavLink key={path} to={path} className="tab"activeClassName="active">
+                  {name}
+                </NavLink>
+              )
+            ))}
+          </div>
+          <div className="example">
+            <Switch>
+              {EXAMPLES.map(([ name, Component, path, isDev ]) => (
+                <Route key={path} path={path} component={Component} />
+              ))}
+              <Redirect from="/" to="/rich-text" />
+            </Switch>
           </div>
         </div>
-        <div className="tabs">
-          {EXAMPLES.map(([ name, Component, path, isDev ]) => (
-            (NODE_ENV != 'production' || !isDev) && (
-              <NavLink key={path} to={path} className="tab"activeClassName="active">
-                {name}
-              </NavLink>
-            )
-          ))}
-        </div>
-        <div className="example">
-          <Switch>
-            {EXAMPLES.map(([ name, Component, path, isDev ]) => (
-              <Route key={path} path={path} component={Component} />
-            ))}
-            <Redirect from="/" to="/rich-text" />
-          </Switch>
-        </div>
-      </div>
+      </Provider>
     )
   }
 
