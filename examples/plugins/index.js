@@ -1,5 +1,6 @@
 // 3rd party modules
 import Immutable from "immutable"
+import PropTypes from 'prop-types'
 import { connect } from "react-redux"
 import { bindActionCreators }  from 'redux'
 
@@ -48,7 +49,6 @@ function WordCount(options) {
  *
  * @type {Component}
  */
-
 class Plugins extends React.Component {
   /**
    * Deserialize the initial editor state.
@@ -57,6 +57,9 @@ class Plugins extends React.Component {
    */
   constructor(props) {
     super(props)
+
+    let userId = this.props.userId || USER_ID
+
     /**
      * Plugins.
      */
@@ -68,7 +71,7 @@ class Plugins extends React.Component {
       SoftBreak(),
       WordCount(),
       SyncViaSocket({
-        userId: USER_ID,
+        userId: userId,
         useCookie: true,
         userAuthToken: "",
         encryptedAuthToken: "",
@@ -78,7 +81,7 @@ class Plugins extends React.Component {
       })
     ]
 
-    this.props.setUserId(-1)
+    this.props.setUserId(userId)
   }
 
 
@@ -100,6 +103,18 @@ class Plugins extends React.Component {
   }
 
 }
+
+Plugins.propTypes = {
+  userId: PropTypes.number,
+  useCookie: PropTypes.bool,
+  userAuthToken: PropTypes.string,
+  encryptedAuthToken: PropTypes.string,
+  rtsUrl: PropTypes.string,
+  showIsTyping: PropTypes.bool,
+  store: PropTypes.object
+}
+
+
 
 /**
  * Export.
