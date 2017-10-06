@@ -1,6 +1,8 @@
 // 3rd party modules
 import Immutable from "immutable"
 import Plain from 'slate-plain-serializer'
+import Automerge from 'automerge'
+import { State } from 'slate'
 
 // Chat modules
 import casesActionTypes from "./actionTypes"
@@ -35,8 +37,10 @@ export default function(state=getInitialCase(), action) {
 }
 
 function getInitialCase() {
+
     let state = Immutable.Map();
-    state = state.set("state", Plain.deserialize(`This example shows how you can extend Slate with plugins! It uses four fairly simple plugins, but you can use any plugins you want, or write your own!
+
+    let slateState = Plain.deserialize(`This example shows how you can extend Slate with plugins! It uses four fairly simple plugins, but you can use any plugins you want, or write your own!
 
             The first is an "auto replacer". Try typing "(c)" and you'll see it turn into a copyright symbol automatically!
 
@@ -44,12 +48,22 @@ function getInitialCase() {
 
             The third is another simple plugin that inserts a "soft" break when enter is pressed instead of creating a new block. Try pressing enter!
 
-            The fourth is an example of using the plugin.render property to create a higher-order-component.`))
+            The fourth is an example of using the plugin.render property to create a higher-order-component.`)
+
+    let automergeState = Automerge.change(Automerge.init(), "new document", (doc) => {
+      doc.docId = "0000",
+      doc.slateState = slateState.toJSON({preserveObjectId: false})
+    })
+
+    state = state.set("automerge", automergeState);
+
+    state = state.set("state", slateState)
 
     state = state.set("alreadyApplied", Immutable.Set())
     state = state.set("unsyncedOperations", Immutable.List())
     state = state.set("activeUsers", Immutable.Map())
     state = state.set("userId", -1)
+
     return state
 }
 
@@ -65,6 +79,7 @@ function getCaseFromStore(state, payload) {
 }
 
 function updateCase(state, payload) {
+
     let caseHash = payload["caseHash"]
     let change = payload["change"]
     let tempId = payload["tempId"]
@@ -75,6 +90,26 @@ function updateCase(state, payload) {
     }
     state = state.set("state", change.state)
     state = state.set("alreadyApplied", state.get("alreadyApplied").add(tempId))
+
+    // let slateState = state.get("state").toJSON()
+
+    // state = state.set("automerge", Automerge.change(state.get("automerge"), "update document", (doc) => {
+    //   doc.slateState = slateState
+    // }));
+
+
+    let slateState = state.get("state")
+
+    let automergeState = Automerge.change(Automerge.init(), "new document", (doc) => {
+      doc.docId = "0000",
+      doc.slateState = slateState.toJSON({preserveObjectId: true})
+    })
+
+    state = state.set("automerge", automergeState);
+
+    state = state.set("state", State.fromJSON(automergeState.slateState))
+
+
     return state
 }
 

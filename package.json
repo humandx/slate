@@ -70,7 +70,8 @@
     "uglify-js": "^2.7.0",
     "uglifyify": "^3.0.2",
     "watchify": "^3.7.0",
-    "yaml-js": "^0.2.0"
+    "yaml-js": "^0.2.0",
+    "automerge": "^0.5.0"
   },
   "peerDependencies": {
     "slate": "*",

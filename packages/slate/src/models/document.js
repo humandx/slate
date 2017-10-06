@@ -147,10 +147,15 @@ class Document extends Record(DEFAULTS) {
       key: this.key,
       kind: this.kind,
       nodes: this.nodes.toArray().map(n => n.toJSON(options)),
+      _objectId: this.key,
     }
 
     if (!options.preserveKeys) {
       delete object.key
+    }
+
+    if (!options.preserveObjectId) {
+      delete object._objectId
     }
 
     return object

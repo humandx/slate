@@ -438,6 +438,7 @@ class Text extends Record(DEFAULTS) {
       key: this.key,
       kind: this.kind,
       ranges: this.getRanges().toArray().map(r => r.toJSON()),
+      _objectId: this.key,
     }
 
     if (!options.preserveKeys) {

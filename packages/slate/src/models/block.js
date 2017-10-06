@@ -185,10 +185,15 @@ class Block extends Record(DEFAULTS) {
       isVoid: this.isVoid,
       type: this.type,
       nodes: this.nodes.toArray().map(n => n.toJSON(options)),
+      _objectId: this.key,
     }
 
     if (!options.preserveKeys) {
       delete object.key
+    }
+
+    if (!options.preserveObjectId) {
+      delete object._objectId
     }
 
     return object

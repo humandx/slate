@@ -1,3 +1,4 @@
+import uuid from "uuid/v4"
 
 /**
  * An auto-incrementing index for generating keys.
@@ -13,7 +14,7 @@ let n
  * @type {Function}
  */
 
-let generate
+let generate = () => {return uuid()}
 
 /**
  * Generate a key.
@@ -41,7 +42,8 @@ function setKeyGenerator(func) {
 
 function resetKeyGenerator() {
   n = 0
-  generate = () => `${n++}`
+  // generate = () => `${n++}`
+  generate = () => {return uuid()}
 }
 
 /**
