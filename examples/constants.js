@@ -5,5 +5,5 @@ export const userAuthToken = "eyJ0b2tlbiI6IjA4YTQ5YzgxLTA1YWQtNDBjNC05MWY2LTkxZD
 
 // For dev environment, uncomment
 // export const rootUrl = "https://dev.humandx.org"
-// export const socketUrl = "https://dev-socket.humandx.org"
+// export const rtsUrl = "https://dev-socket.humandx.org"
 // export const userAuthToken = ""
