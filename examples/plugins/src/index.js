@@ -20,8 +20,9 @@ function SyncViaSocket(options = {}) {
    * options contains: userId, rtsUrl, userAuthToken, encryptedAuthToken
    * showIsTyping
    */
-  let { userId, userAuthToken, encryptedAuthToken, rtsUrl, showIsTyping, store } = options
-  new Connector(userId, userAuthToken, encryptedAuthToken, rtsUrl, store)
+
+  let { userId, userAuthToken, rootUrl, rtsUrl, showIsTyping, store } = options
+  new Connector(userId, userAuthToken, rootUrl, rtsUrl, store)
 
   /**
    * On change.
