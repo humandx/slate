@@ -16,6 +16,7 @@ import { Editor } from "slate-react"
 import { store } from "../index"
 import { setUserId } from "./src/store/cases/actions"
 import SyncViaSocket from "./src/index"
+import { rootUrl, rtsUrl, userAuthToken } from "../constants"
 
 // Global vars
 const USER_ID = 152
@@ -73,9 +74,9 @@ class Plugins extends React.Component {
       SyncViaSocket({
         userId: userId,
         useCookie: true,
-        userAuthToken: "",
-        encryptedAuthToken: "",
-        rtsUrl: "http://localhost:5000/",
+        userAuthToken: userAuthToken,
+        rootUrl: rootUrl,
+        rtsUrl: rtsUrl,
         showIsTyping: true,
         store: store
       })

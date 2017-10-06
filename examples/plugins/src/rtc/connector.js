@@ -2,6 +2,7 @@
 import Bluebird from "bluebird"
 import Humps from "humps"
 import io from "socket.io-client"
+const $ = window.jQuery;
 
 // Slate modules
 // N/A
@@ -9,7 +10,6 @@ import io from "socket.io-client"
 // Cases module
 import EmitEvents from "./emitEventTypes"
 import IncomingEvents from "./incomingEventTypes"
-
 
 /**
  * Enum status to denote current state of the socket connection.
@@ -37,73 +37,77 @@ class connector {
      * Constructor for the instantiatable connector.
      * @param {string} userId: User Id of the logged in user.
      * @param {string} authToken: Authentication token of the logged in user.
-     * @param {string} encryptedAuthToken: Encrypted Authentication token of the
-     *                 logged in user.
      * @param {string} rtsUrl: URL pointing to the real time server.
      * @param {object} store: Redux store to be used to dispatch actions.
      */
-    constructor(userId, authToken, encryptedAuthToken, rtsUrl, store) {
+    constructor(userId, authToken, rootUrl, rtsUrl, store) {
         if (!connectorInstance) {
             connectorInstance = this
         }
         this.userId = userId
         this.store = store
+        this.rtsUrl = rtsUrl
 
-        var query = [
-            "Auth-Token=", encodeURIComponent(authToken), "&",
-            "Encrypted-Token=", encodeURIComponent(encryptedAuthToken)
-        ].join("")
+        let EncryptedAuthToken = $.ajax({
+            url: `${rootUrl}/apps/user/api/v1/auth-for-socket`,
+            headers: {"Auth-Token": authToken}
+        }).done((getEncryptedAuthTokenResponse) => {
+            let encryptedAuthToken = getEncryptedAuthTokenResponse.result;
+            let query = [
+                "Auth-Token=", encodeURIComponent(authToken), "&",
+                "Encrypted-Token=", encodeURIComponent(encryptedAuthToken)
+            ].join("")
 
-        /**
-         * Options to be passed to the socket manager.
-         * More options are available here:
-         * https://github.com/socketio/engine.io-client#methods
-         * @param {boolean} autoConnect : Determines if the socket manager
-         *       should connect once it is instantiated.
-         * @param {object} query: Extra data to be sent across to the
-         *       socket server
-         * @param {boolean} reconnection: Determines if the socket connection
-         *       would attempt to reconnect when connection is lost.
-         * @param {number} reconnectionAttempts: Number of times the socket
-         *       connection should attempt reconnection.
-         * @param {boolean} upgrade: Determines if the socket manager should
-         *       try to upgrade the transport from long-polling to websocket.
-         * @param {array} transports: An array of strings denoting the type
-         *      of transports the socket manager should employ.
-         */
-        var options = {
-            autoConnect: false,
-            query: query,
-            reconnection: true,
-            reconnectionAttempts: 3,
-            upgrade: true,
-            transports: ["websocket", "polling"]
-        }
-
-        this.socket = io(rtsUrl, options)
-        /**
-         * The helps to return the emit calls as promises,
-         * which would help seperate the socket calls from the
-         * action dispatchers.
-         */
-        this.socket.emitAsync = Bluebird.promisify(this.socket.emit)
-
-        /**
-         * Listen to connect emission before setting up receivers for
-         * other events.
-         */
-        this.socket.on("connected", (result) => {
-            if (result.success === true) {
-                this.setupSocketReceivers()
+            /**
+             * Options to be passed to the socket manager.
+             * More options are available here:
+             * https://github.com/socketio/engine.io-client#methods
+             * @param {boolean} autoConnect : Determines if the socket manager
+             *       should connect once it is instantiated.
+             * @param {object} query: Extra data to be sent across to the
+             *       socket server
+             * @param {boolean} reconnection: Determines if the socket connection
+             *       would attempt to reconnect when connection is lost.
+             * @param {number} reconnectionAttempts: Number of times the socket
+             *       connection should attempt reconnection.
+             * @param {boolean} upgrade: Determines if the socket manager should
+             *       try to upgrade the transport from long-polling to websocket.
+             * @param {array} transports: An array of strings denoting the type
+             *      of transports the socket manager should employ.
+             */
+            let options = {
+                autoConnect: false,
+                query: query,
+                reconnection: true,
+                reconnectionAttempts: 3,
+                upgrade: true,
+                transports: ["websocket", "polling"]
             }
-        })
 
-        this.socket.open()
+            this.socket = io(rtsUrl, options)
+            /**
+             * The helps to return the emit calls as promises,
+             * which would help separate the socket calls from the
+             * action dispatchers.
+             */
+            this.socket.emitAsync = Bluebird.promisify(this.socket.emit)
 
-        this.socket.on("unauthorized", (result) => {
-            log("unauthorized because: ", result)
+            /**
+             * Listen to connect emission before setting up receivers for
+             * other events.
+             */
+            this.socket.on("connected", (result) => {
+                if (result.success === true) {
+                    this.setupSocketReceivers()
+                }
+            })
+
+            this.socket.open()
+
+            this.socket.on("unauthorized", (result) => {
+                log("unauthorized because: ", result)
+            })
         })
-        return connectorInstance
     }
 
     static getInstance() {
