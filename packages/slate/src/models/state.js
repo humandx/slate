@@ -9,6 +9,7 @@ import Change from './change'
 import Document from './document'
 import History from './history'
 import Selection from './selection'
+import generateKey from '../utils/generate-key'
 
 /**
  * Default properties.
@@ -21,6 +22,7 @@ const DEFAULTS = {
   selection: Selection.create(),
   history: History.create(),
   data: new Map(),
+  key: "top",
 }
 
 /**
@@ -64,6 +66,7 @@ class State extends Record(DEFAULTS) {
   static fromJSON(object, options = {}) {
     let {
       document = {},
+      key = generateKey(),
       selection = {},
     } = object
 
@@ -577,6 +580,7 @@ class State extends Record(DEFAULTS) {
       kind: this.kind,
       history: this.history.toJSON(),
       selection: this.selection.toJSON(),
+      key: this.key,
     }
 
     if (!options.preserveHistory) {
@@ -589,6 +593,10 @@ class State extends Record(DEFAULTS) {
 
     if (!options.preserveStateData) {
       delete object.data
+    }
+
+    if (!options.preserveKeys) {
+      delete object.key
     }
 
     if (options.preserveSelection && !options.preserveKeys) {

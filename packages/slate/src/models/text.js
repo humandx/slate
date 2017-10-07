@@ -437,8 +437,15 @@ class Text extends Record(DEFAULTS) {
     const object = {
       key: this.key,
       kind: this.kind,
-      ranges: this.getRanges().toArray().map(r => r.toJSON()),
-      _objectId: this.key,
+      ranges: this.getRanges().toArray().map((r,i) => {
+        let q = r.toJSON()
+        q.key = this.key + "-ranges-" + i
+        return q
+      }),
+    }
+
+    if (this.ranges) {
+      this.ranges.key = this.key + "-ranges"
     }
 
     if (!options.preserveKeys) {

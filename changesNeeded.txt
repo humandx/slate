@@ -1,0 +1,28 @@
+In automerge.js, need to modify the `createNestedObjects` function to
+use the keys provided by slate.
+
+function createNestedObjects(state, value) {
+  if (typeof value._objectId === 'string') return [state, value._objectId]
+
+  // ADDED BY VICTOR
+  let objectId
+  if (value && value.key) {
+    objectId = value.key
+  } else {
+    objectId = uuid()
+  }
+  // const objectId = uuid()
+
+  if (Array.isArray(value)) {
+    state = makeOp(state, { action: 'makeList', obj: objectId })
+    let elemId = '_head'
+    for (let i = 0; i < value.length; i++) {
+      [state, elemId] = insertAfter(state, objectId, elemId)
+      state = setField(state, objectId, elemId, value[i])
+    }
+  } else {
+    state = makeOp(state, { action: 'makeMap', obj: objectId })
+    for (let key of Object.keys(value)) state = setField(state, objectId, key, value[key])
+  }
+  return [state, objectId]
+}

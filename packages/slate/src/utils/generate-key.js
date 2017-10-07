@@ -14,7 +14,8 @@ let n
  * @type {Function}
  */
 
-let generate = () => {return uuid()}
+let generate
+// let generate = () => {return uuid()}
 
 /**
  * Generate a key.
@@ -42,8 +43,8 @@ function setKeyGenerator(func) {
 
 function resetKeyGenerator() {
   n = 0
-  // generate = () => `${n++}`
-  generate = () => {return uuid()}
+  generate = () => `${n++}`
+  // generate = () => {return uuid()}
 }
 
 /**

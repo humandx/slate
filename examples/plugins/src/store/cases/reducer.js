@@ -1,5 +1,7 @@
 // 3rd party modules
 import Immutable from "immutable"
+import patch from 'immutablepatch';
+import diff from 'immutablediff';
 import Plain from 'slate-plain-serializer'
 import Automerge from 'automerge'
 import { State } from 'slate'
@@ -40,19 +42,21 @@ function getInitialCase() {
 
     let state = Immutable.Map();
 
-    let slateState = Plain.deserialize(`This example shows how you can extend Slate with plugins! It uses four fairly simple plugins, but you can use any plugins you want, or write your own!
+    // let slateState = Plain.deserialize(`This example shows how you can extend Slate with plugins! It uses four fairly simple plugins, but you can use any plugins you want, or write your own!
 
-            The first is an "auto replacer". Try typing "(c)" and you'll see it turn into a copyright symbol automatically!
+    //         The first is an "auto replacer". Try typing "(c)" and you'll see it turn into a copyright symbol automatically!
 
-            The second is a simple plugin to collapse the selection whenever the escape key is pressed. Try selecting some text and pressing escape.
+    //         The second is a simple plugin to collapse the selection whenever the escape key is pressed. Try selecting some text and pressing escape.
 
-            The third is another simple plugin that inserts a "soft" break when enter is pressed instead of creating a new block. Try pressing enter!
+    //         The third is another simple plugin that inserts a "soft" break when enter is pressed instead of creating a new block. Try pressing enter!
 
-            The fourth is an example of using the plugin.render property to create a higher-order-component.`)
+    //         The fourth is an example of using the plugin.render property to create a higher-order-component.`)
+
+    let slateState = Plain.deserialize(`This example.`)
 
     let automergeState = Automerge.change(Automerge.init(), "new document", (doc) => {
       doc.docId = "0000",
-      doc.slateState = slateState.toJSON({preserveObjectId: false})
+      doc.slateState = slateState.toJSON({preserveKeys: true})
     })
 
     state = state.set("automerge", automergeState);
@@ -84,6 +88,8 @@ function updateCase(state, payload) {
     let change = payload["change"]
     let tempId = payload["tempId"]
 
+    let originalState = state
+
     let alreadyApplied = state.get("alreadyApplied")
     if (alreadyApplied.has(tempId)) {
         return state
@@ -98,19 +104,44 @@ function updateCase(state, payload) {
     // }));
 
 
+    let automergeStateOriginal = state.get("automerge")["slateState"]
+    let automergeStateImmutable = Immutable.fromJS(automergeStateOriginal)
     let slateState = state.get("state")
+    let slateStateJson = slateState.toJSON({preserveKeys:true})
+    let slateStateImmutable = Immutable.fromJS(slateStateJson)
+    let ops = diff(automergeStateImmutable, slateStateImmutable)
+    ops = ops.filter((op) => {return op.get("path").indexOf("_objectId") == -1})
 
-    let automergeState = Automerge.change(Automerge.init(), "new document", (doc) => {
-      doc.docId = "0000",
-      doc.slateState = slateState.toJSON({preserveObjectId: true})
-    })
+    if (ops.size !== 0) {
+        let newState = patch(automergeStateImmutable, ops)
+        let opsCheck = diff(newState, slateStateImmutable)
 
-    state = state.set("automerge", automergeState);
-
-    state = state.set("state", State.fromJSON(automergeState.slateState))
-
-
+        let automergeState = Automerge.change(state.get("automerge"), "update document", (doc) => {
+          // doc.slateState = slateState.toJSON({preserveKeys:true})
+          // let test = patch(automergeStateImmutable, ops)
+          // let testJS = test.toJS()
+          // doc.slateState = testJS
+          // doc.slateState.document.nodes[0].nodes[0].ranges[0] = "thisa"
+          applyOperationToJson(doc.slateState, ops)
+        })
+        state = state.set("automerge", automergeState);
+        state = state.set("state", State.fromJSON(automergeState.slateState))
+    }
     return state
+}
+
+function applyOperationToJson(automergeState, operations) {
+    let rootAutomergeState = automergeState
+    operations.forEach((operation) => {
+        let pathList = operation.get('path').split('/').splice(1)
+        let automergeState = rootAutomergeState
+        pathList.forEach((path, i) => {if (i != pathList.length-1) {automergeState = automergeState[path]}})
+        if (operation.get("op") == "replace") {
+            automergeState[pathList[pathList.length-1]] = operation.get("value")
+        }
+        // Add "add" and "remove" operations
+    })
+    return automergeState
 }
 
 function updateCaseFromServer(state, payload) {
