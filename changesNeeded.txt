@@ -13,16 +13,40 @@ function createNestedObjects(state, value) {
   }
   // const objectId = uuid()
 
-  if (Array.isArray(value)) {
-    state = makeOp(state, { action: 'makeList', obj: objectId })
-    let elemId = '_head'
-    for (let i = 0; i < value.length; i++) {
-      [state, elemId] = insertAfter(state, objectId, elemId)
-      state = setField(state, objectId, elemId, value[i])
+  if (Array.isArray(value) || Immutable.List.isList(value)) {
+    if (Array.isArray(value)) {
+      state = makeOp(state, { action: 'makeList', obj: objectId })
+      let elemId = '_head'
+      for (let i = 0; i < value.length; i++) {
+        [state, elemId] = insertAfter(state, objectId, elemId)
+        state = setField(state, objectId, elemId, value[i])
+      }
+    } else {
+      state = makeOp(state, { action: 'makeList', obj: objectId })
+      let elemId = '_head'
+      for (let i = 0; i < value.size; i++) {
+        [state, elemId] = insertAfter(state, objectId, elemId)
+        state = setField(state, objectId, elemId, value.get(i))
+      }
     }
   } else {
-    state = makeOp(state, { action: 'makeMap', obj: objectId })
-    for (let key of Object.keys(value)) state = setField(state, objectId, key, value[key])
+    // ADDED BY VICTOR
+    if (Immutable.isImmutable(value)) {
+      if (value.size > 0) {
+        state = makeOp(state, { action: 'makeMap', obj: objectId })
+        if (Immutable.Map.isMap(value)) {
+          for (let key of value.keys()) state = setField(state, objectId, key, value[key])
+        } else if (Immutable.Record.isRecord(value)) {
+          for (let key of value._keys) state = setField(state, objectId, key, value[key])
+        } else {
+          // console.log("Unsupported ImmutableJS type: " + value)
+          for (let key of value._keys) state = setField(state, objectId, key, value[key])
+        }
+      }
+    } else {
+      state = makeOp(state, { action: 'makeMap', obj: objectId })
+      for (let key of Object.keys(value)) state = setField(state, objectId, key, value[key])
+    }
   }
   return [state, objectId]
 }

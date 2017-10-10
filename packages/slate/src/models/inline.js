@@ -109,6 +109,9 @@ class Inline extends Record(DEFAULTS) {
       nodes: new List(nodes.map(Node.fromJSON)),
     })
 
+    inline.data.key = inline.key + "-data"
+    inline.nodes.key = inline.key + "-nodes"
+
     return inline
   }
 

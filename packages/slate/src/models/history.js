@@ -70,6 +70,9 @@ class History extends Record(DEFAULTS) {
       undos: new Stack(undos),
     })
 
+    history.redos.key = history.key + "-redos"
+    history.undos.key = history.key + "-undos"
+
     return history
   }
 

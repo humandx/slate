@@ -89,6 +89,8 @@ class Character extends Record(DEFAULTS) {
       marks: new Set(marks),
     })
 
+    character.marks.key = character.key + "-marks"
+
     return character
   }
 

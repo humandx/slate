@@ -5,6 +5,7 @@ import { List, Record, Set } from 'immutable'
 import MODEL_TYPES from '../constants/model-types'
 import Character from './character'
 import Mark from './mark'
+import generateKey from '../utils/generate-key'
 
 /**
  * Default properties.
@@ -14,6 +15,7 @@ import Mark from './mark'
 
 const DEFAULTS = {
   marks: new Set(),
+  key: undefined,
   text: '',
 }
 
@@ -74,6 +76,7 @@ class Range extends Record(DEFAULTS) {
   static fromJSON(object) {
     const {
       text = '',
+      key = generateKey(),
       marks = [],
     } = object
 
@@ -81,6 +84,8 @@ class Range extends Record(DEFAULTS) {
       text,
       marks: new Set(marks.map(Mark.fromJSON)),
     })
+
+    range.marks.key = range.key + "-marks"
 
     return range
   }

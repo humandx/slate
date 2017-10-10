@@ -109,6 +109,9 @@ class Block extends Record(DEFAULTS) {
       nodes: new List(nodes.map(Node.fromJSON)),
     })
 
+    block.data.key = key + "-data"
+    block.nodes.key = key + "-nodes"
+
     return block
   }
 

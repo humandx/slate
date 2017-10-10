@@ -104,6 +104,8 @@ class Text extends Record(DEFAULTS) {
       key,
     })
 
+    node.characters.key = node.key + "-characters"
+
     return node
   }
 

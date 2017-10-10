@@ -119,6 +119,8 @@ class Mark extends Record(DEFAULTS) {
       data: new Map(data),
     })
 
+    mark.data.key = mark.key + "-data"
+
     return mark
   }
 

@@ -84,6 +84,9 @@ class Document extends Record(DEFAULTS) {
       nodes: new List(nodes.map(Node.fromJSON)),
     })
 
+    document.data.key = document.key + "-data"
+    document.nodes.key = document.key + "-nodes"
+
     return document
   }
 
