@@ -134,13 +134,14 @@ class Range extends Record(DEFAULTS) {
    * @return {List<Character>}
    */
 
-  getCharacters() {
+  getCharacters(key) {
     const { marks } = this
     const characters = Character.createList(this.text
       .split('')
-      .map((char) => {
+      .map((char, idx) => {
         return Character.create({
           text: char,
+          key: `${key}:${idx}`,
           marks
         })
       }))

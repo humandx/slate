@@ -13,6 +13,7 @@ import MODEL_TYPES from '../constants/model-types'
 
 const DEFAULTS = {
   marks: new Set(),
+  key: null,
   text: '',
 }
 
@@ -77,6 +78,7 @@ class Character extends Record(DEFAULTS) {
   static fromJSON(object) {
     const {
       text,
+      key,
       marks = [],
     } = object
 
@@ -86,6 +88,7 @@ class Character extends Record(DEFAULTS) {
 
     const character = new Character({
       text,
+      key,
       marks: new Set(marks),
     })
 

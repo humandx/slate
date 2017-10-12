@@ -97,7 +97,7 @@ class Text extends Record(DEFAULTS) {
 
     const characters = ranges
       .map(Range.fromJSON)
-      .reduce((l, r) => l.concat(r.getCharacters()), new List())
+      .reduce((l, r) => l.concat(r.getCharacters(key)), new List())
 
     const node = new Text({
       characters,
