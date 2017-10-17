@@ -48,66 +48,63 @@ class connector {
         this.store = store
         this.rtsUrl = rtsUrl
 
-        let EncryptedAuthToken = $.ajax({
-            url: `${rootUrl}/apps/user/api/v1/auth-for-socket`,
-            headers: {"Auth-Token": authToken}
-        }).done((getEncryptedAuthTokenResponse) => {
-            let encryptedAuthToken = getEncryptedAuthTokenResponse.result;
-            let query = [
-                "Auth-Token=", encodeURIComponent(authToken), "&",
-                "Encrypted-Token=", encodeURIComponent(encryptedAuthToken)
-            ].join("")
+        let userAgent = window.navigator.userAgent;
+        let query = [
+            "Auth-Token=", encodeURIComponent(authToken), "&",
+            "User-Agent=", encodeURIComponent(userAgent)
+        ].join("")
 
-            /**
-             * Options to be passed to the socket manager.
-             * More options are available here:
-             * https://github.com/socketio/engine.io-client#methods
-             * @param {boolean} autoConnect : Determines if the socket manager
-             *       should connect once it is instantiated.
-             * @param {object} query: Extra data to be sent across to the
-             *       socket server
-             * @param {boolean} reconnection: Determines if the socket connection
-             *       would attempt to reconnect when connection is lost.
-             * @param {number} reconnectionAttempts: Number of times the socket
-             *       connection should attempt reconnection.
-             * @param {boolean} upgrade: Determines if the socket manager should
-             *       try to upgrade the transport from long-polling to websocket.
-             * @param {array} transports: An array of strings denoting the type
-             *      of transports the socket manager should employ.
-             */
-            let options = {
-                autoConnect: false,
-                query: query,
-                reconnection: true,
-                reconnectionAttempts: 3,
-                upgrade: true,
-                transports: ["websocket", "polling"]
-            }
+        /**
+         * Options to be passed to the socket manager.
+         * More options are available here:
+         * https://github.com/socketio/engine.io-client#methods
+         * @param {boolean} autoConnect : Determines if the socket manager
+         *       should connect once it is instantiated.
+         * @param {object} query: Extra data to be sent across to the
+         *       socket server
+         * @param {boolean} reconnection: Determines if the socket connection
+         *       would attempt to reconnect when connection is lost.
+         * @param {number} reconnectionAttempts: Number of times the socket
+         *       connection should attempt reconnection.
+         * @param {boolean} upgrade: Determines if the socket manager should
+         *       try to upgrade the transport from long-polling to websocket.
+         * @param {array} transports: An array of strings denoting the type
+         *      of transports the socket manager should employ.
+         */
+        let options = {
+            autoConnect: false,
+            query: query,
+            reconnection: true,
+            reconnectionAttempts: 3,
+            upgrade: true,
+            transports: ["websocket", "polling"]
+        }
 
-            this.socket = io(rtsUrl, options)
-            /**
-             * The helps to return the emit calls as promises,
-             * which would help separate the socket calls from the
-             * action dispatchers.
-             */
-            this.socket.emitAsync = Bluebird.promisify(this.socket.emit)
+        this.socket = io(rtsUrl, options)
+        /**
+         * The helps to return the emit calls as promises,
+         * which would help separate the socket calls from the
+         * action dispatchers.
+         */
+        this.socket.emitAsync = Bluebird.promisify(this.socket.emit)
 
-            /**
-             * Listen to connect emission before setting up receivers for
-             * other events.
-             */
-            this.socket.on("connected", (result) => {
-                if (result.success === true) {
-                    this.setupSocketReceivers()
-                }
-            })
+        /**
+         * Listen to connect emission before setting up receivers for
+         * other events.
+         */
+        // this.socket.on("connected", (result) => {
+        //     if (result.success === true) {
+        //         this.setupSocketReceivers()
+        //     }
+        // })
 
-            this.socket.open()
+        this.socket.open()
 
-            this.socket.on("unauthorized", (result) => {
-                log("unauthorized because: ", result)
-            })
+        this.socket.on("unauthorized", (result) => {
+            log("unauthorized because: ", result)
         })
+
+        this.setupSocketReceivers()
     }
 
     static getInstance() {
