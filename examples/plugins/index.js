@@ -3,6 +3,7 @@ import Immutable from "immutable"
 import PropTypes from "prop-types"
 import { connect } from "react-redux"
 import { bindActionCreators }  from "redux"
+import Cookies from "js-cookie"
 
 // Slate modules
 import AutoReplaceText from "slate-auto-replace-text"
@@ -16,7 +17,8 @@ import { Editor } from "slate-react"
 import { store } from "../index"
 import { setUserId } from "./src/store/cases/actions"
 import SyncViaSocket from "./src/index"
-import { rootUrl, rtsUrl, userAuthToken } from "../constants"
+import { rootUrl, rtsUrl, userAuthToken, userPhoneNumber } from "../constants"
+import {getLoginCode, getAuthToken} from "./src/apis/auth"
 
 // Global vars
 const USER_ID = 152
@@ -64,27 +66,47 @@ class Plugins extends React.Component {
     /**
      * Plugins.
      */
-    this.plugins = [
-      AutoReplaceText("(c)", "©"),
-      AutoReplaceText("(r)", "®"),
-      AutoReplaceText("(tm)", "™"),
-      CollapseOnEscape(),
-      SoftBreak(),
-      WordCount(),
-      SyncViaSocket({
-        userId: userId,
-        useCookie: true,
-        userAuthToken: userAuthToken,
-        rootUrl: rootUrl,
-        rtsUrl: rtsUrl,
-        showIsTyping: true,
-        store: store
-      })
-    ]
-
     this.props.setUserId(userId)
+    this.state = {
+      hasCookie: false,
+      plugins: []
+    }
   }
 
+  componentDidMount() {
+    getLoginCode(userPhoneNumber).then(function (response) {
+      let emailCode = response.data.email_code;
+      let userId = response.data.user_id;
+      // Get the auth token using the user id and emailCode.
+      getAuthToken(userId, emailCode).then(function (response) {
+          let userAuthToken = response.data.auth_token;
+          let userName = response.data.user.full_name;
+          Cookies.set("hdx-user-auth-token", userAuthToken)
+          let plugins = [
+            AutoReplaceText("(c)", "©"),
+            AutoReplaceText("(r)", "®"),
+            AutoReplaceText("(tm)", "™"),
+            CollapseOnEscape(),
+            SoftBreak(),
+            WordCount(),
+            SyncViaSocket({
+              userId: userId,
+              useCookie: true,
+              userAuthToken: userAuthToken,
+              rootUrl: rootUrl,
+              rtsUrl: rtsUrl,
+              showIsTyping: true,
+              store: store
+            })
+          ]
+          this.setState({
+            hasCookie: true,
+            plugins: plugins
+          })
+      }.bind(this))
+    }.bind(this))
+
+  }
 
   /**
    * Render the editor.
@@ -92,15 +114,19 @@ class Plugins extends React.Component {
    * @return {Component} component
    */
   render() {
+    if (this.state.hasCookie) {
       return (
         <Editor
           placeholder={"Enter some text..."}
-          plugins={this.plugins}
+          plugins={this.state.plugins}
           state={this.props.state}
           onChange={this.onChange}
           activeUsers={this.props.activeUsers}
         />
       )
+    } else {
+      return (<span>Loading...</span>);
+    }
   }
 
 }

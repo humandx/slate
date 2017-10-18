@@ -70,7 +70,11 @@
     "uglify-js": "^2.7.0",
     "uglifyify": "^3.0.2",
     "watchify": "^3.7.0",
-    "yaml-js": "^0.2.0"
+    "yaml-js": "^0.2.0",
+    "axios": "",
+    "js-cookie": "",
+    "socket.io": "^1.7.3",
+    "automerge": ""
   },
   "peerDependencies": {
     "slate": "*",
