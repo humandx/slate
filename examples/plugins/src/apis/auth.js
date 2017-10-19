@@ -1,6 +1,7 @@
 import axios from "axios";
+import { rootUrl } from "../../../constants"
 
-let casesServiceUrl = "http://localhost:8000/apps/cases/api/v2/"
+let casesServiceUrl = `${rootUrl}/apps/cases/api/v2/`
 
 export function getLoginCode(phoneNumber) {
     const data = new FormData();

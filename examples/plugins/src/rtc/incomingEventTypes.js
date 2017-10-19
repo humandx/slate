@@ -47,8 +47,9 @@ export default function (store) {
             code: "cases/update_case_from_server",
             action: (data) => {
                 data = Humps.camelizeKeys(data)
+                let operations = data.operations || data.data.state.operations
                 store.dispatch(CaseActions.updateCaseActions().receive(
-                    data.caseHash, data.operations, data.tempId
+                    data.caseHash, operations, data.tempId
                 ))
             }
         },
