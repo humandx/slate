@@ -2,16 +2,17 @@
 /* eslint-disable react/jsx-key */
 
 import h from '../../test/helpers/h'
-import SCHEMA from '../../lib/schemas/core'
 
-export default function (state) {
-  state
-    .change()
-    .normalize(SCHEMA)
+export default function (change) {
+  change.normalize()
+}
+
+export function before(value) {
+  return value.change()
 }
 
 export const input = (
-  <state>
+  <value>
     <document>
       {Array.from(Array(10)).map((v, i) => (
         <quote>
@@ -24,5 +25,5 @@ export const input = (
         </quote>
       ))}
     </document>
-  </state>
+  </value>
 )

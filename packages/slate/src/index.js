@@ -1,39 +1,21 @@
 
-/**
- * Models.
- */
-
 import Block from './models/block'
+import Changes from './changes'
 import Character from './models/character'
 import Data from './models/data'
 import Document from './models/document'
 import History from './models/history'
 import Inline from './models/inline'
+import Leaf from './models/leaf'
 import Mark from './models/mark'
 import Node from './models/node'
-import Schema from './models/schema'
-import Selection from './models/selection'
-import Stack from './models/stack'
-import State from './models/state'
-import Text from './models/text'
-import Range from './models/range'
-
-/**
- * Operations.
- */
-
+import Operation from './models/operation'
 import Operations from './operations'
-
-/**
- * Changes.
- */
-
-import Changes from './changes'
-
-/**
- * Utils.
- */
-
+import Range from './models/range'
+import Schema from './models/schema'
+import Stack from './models/stack'
+import Text from './models/text'
+import Value from './models/value'
 import { resetKeyGenerator, setKeyGenerator } from './utils/generate-key'
 
 /**
@@ -44,42 +26,44 @@ import { resetKeyGenerator, setKeyGenerator } from './utils/generate-key'
 
 export {
   Block,
+  Changes,
   Character,
   Data,
   Document,
   History,
   Inline,
+  Leaf,
   Mark,
   Node,
+  Operation,
   Operations,
   Range,
   Schema,
-  Selection,
   Stack,
-  State,
   Text,
-  Changes,
+  Value,
   resetKeyGenerator,
   setKeyGenerator,
 }
 
 export default {
   Block,
+  Changes,
   Character,
   Data,
   Document,
   History,
   Inline,
+  Leaf,
   Mark,
   Node,
+  Operation,
   Operations,
   Range,
   Schema,
-  Selection,
   Stack,
-  State,
   Text,
-  Changes,
+  Value,
   resetKeyGenerator,
   setKeyGenerator,
 }

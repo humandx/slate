@@ -1,29 +1,9 @@
 
 import { Editor } from 'slate-react'
-import { State } from 'slate'
+import { Value } from 'slate'
 
 import React from 'react'
-import initialState from './state.json'
-
-/**
- * Define a schema.
- *
- * @type {Object}
- */
-
-const schema = {
-  nodes: {
-    'block-quote': props => <blockquote>{props.children}</blockquote>,
-    'bulleted-list': props => <ul>{props.children}</ul>,
-    'heading-one': props => <h1>{props.children}</h1>,
-    'heading-two': props => <h2>{props.children}</h2>,
-    'heading-three': props => <h3>{props.children}</h3>,
-    'heading-four': props => <h4>{props.children}</h4>,
-    'heading-five': props => <h5>{props.children}</h5>,
-    'heading-six': props => <h6>{props.children}</h6>,
-    'list-item': props => <li>{props.children}</li>,
-  }
-}
+import initialValue from './value.json'
 
 /**
  * The auto-markdown example.
@@ -34,13 +14,13 @@ const schema = {
 class MarkdownShortcuts extends React.Component {
 
   /**
-   * Deserialize the raw initial state.
+   * Deserialize the raw initial value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState)
+    value: Value.fromJSON(initialValue)
   }
 
   /**
@@ -77,13 +57,36 @@ class MarkdownShortcuts extends React.Component {
     return (
       <div className="editor">
         <Editor
-          schema={schema}
-          state={this.state.state}
+          placeholder="Write some markdown..."
+          value={this.state.value}
           onChange={this.onChange}
           onKeyDown={this.onKeyDown}
+          renderNode={this.renderNode}
         />
       </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    const { attributes, children, node } = props
+    switch (node.type) {
+      case 'block-quote': return <blockquote {...attributes}>{children}</blockquote>
+      case 'bulleted-list': return <ul {...attributes}>{children}</ul>
+      case 'heading-one': return <h1 {...attributes}>{children}</h1>
+      case 'heading-two': return <h2 {...attributes}>{children}</h2>
+      case 'heading-three': return <h3 {...attributes}>{children}</h3>
+      case 'heading-four': return <h4 {...attributes}>{children}</h4>
+      case 'heading-five': return <h5 {...attributes}>{children}</h5>
+      case 'heading-six': return <h6 {...attributes}>{children}</h6>
+      case 'list-item': return <li {...attributes}>{children}</li>
+    }
   }
 
   /**
@@ -92,23 +95,22 @@ class MarkdownShortcuts extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
    * On key down, check for our specific key shortcuts.
    *
-   * @param {Event} e
-   * @param {Data} data
+   * @param {Event} event
    * @param {Change} change
    */
 
-  onKeyDown = (e, data, change) => {
-    switch (data.key) {
-      case 'space': return this.onSpace(e, change)
-      case 'backspace': return this.onBackspace(e, change)
-      case 'enter': return this.onEnter(e, change)
+  onKeyDown = (event, change) => {
+    switch (event.key) {
+      case ' ': return this.onSpace(event, change)
+      case 'Backspace': return this.onBackspace(event, change)
+      case 'Enter': return this.onEnter(event, change)
     }
   }
 
@@ -116,22 +118,21 @@ class MarkdownShortcuts extends React.Component {
    * On space, if it was after an auto-markdown shortcut, convert the current
    * node into the shortcut's corresponding type.
    *
-   * @param {Event} e
-   * @param {State} change
-   * @return {State or Null} state
+   * @param {Event} event
+   * @param {Change} change
    */
 
-  onSpace = (e, change) => {
-    const { state } = change
-    if (state.isExpanded) return
+  onSpace = (event, change) => {
+    const { value } = change
+    if (value.isExpanded) return
 
-    const { startBlock, startOffset } = state
+    const { startBlock, startOffset } = value
     const chars = startBlock.text.slice(0, startOffset).replace(/\s*/g, '')
     const type = this.getType(chars)
 
     if (!type) return
     if (type == 'list-item' && startBlock.type == 'list-item') return
-    e.preventDefault()
+    event.preventDefault()
 
     change.setBlock(type)
 
@@ -139,10 +140,7 @@ class MarkdownShortcuts extends React.Component {
       change.wrapBlock('bulleted-list')
     }
 
-    change
-      .extendToStartOf(startBlock)
-      .delete()
-
+    change.extendToStartOf(startBlock).delete()
     return true
   }
 
@@ -150,20 +148,19 @@ class MarkdownShortcuts extends React.Component {
    * On backspace, if at the start of a non-paragraph, convert it back into a
    * paragraph node.
    *
-   * @param {Event} e
-   * @param {State} change
-   * @return {State or Null} state
+   * @param {Event} event
+   * @param {Change} change
    */
 
-  onBackspace = (e, change) => {
-    const { state } = change
-    if (state.isExpanded) return
-    if (state.startOffset != 0) return
+  onBackspace = (event, change) => {
+    const { value } = change
+    if (value.isExpanded) return
+    if (value.startOffset != 0) return
 
-    const { startBlock } = state
+    const { startBlock } = value
     if (startBlock.type == 'paragraph') return
 
-    e.preventDefault()
+    event.preventDefault()
     change.setBlock('paragraph')
 
     if (startBlock.type == 'list-item') {
@@ -177,17 +174,16 @@ class MarkdownShortcuts extends React.Component {
    * On return, if at the end of a node type that should not be extended,
    * create a new paragraph below it.
    *
-   * @param {Event} e
-   * @param {State} change
-   * @return {State or Null} state
+   * @param {Event} event
+   * @param {Change} change
    */
 
-  onEnter = (e, change) => {
-    const { state } = change
-    if (state.isExpanded) return
+  onEnter = (event, change) => {
+    const { value } = change
+    if (value.isExpanded) return
 
-    const { startBlock, startOffset, endOffset } = state
-    if (startOffset == 0 && startBlock.text.length == 0) return this.onBackspace(e, change)
+    const { startBlock, startOffset, endOffset } = value
+    if (startOffset == 0 && startBlock.text.length == 0) return this.onBackspace(event, change)
     if (endOffset != startBlock.text.length) return
 
     if (
@@ -202,12 +198,8 @@ class MarkdownShortcuts extends React.Component {
       return
     }
 
-    e.preventDefault()
-
-    change
-      .splitBlock()
-      .setBlock('paragraph')
-
+    event.preventDefault()
+    change.splitBlock().setBlock('paragraph')
     return true
   }
 

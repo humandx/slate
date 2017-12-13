@@ -1,9 +1,8 @@
 
 import React from 'react'
 import ReactDOMServer from 'react-dom/server'
-import logger from 'slate-dev-logger'
 import typeOf from 'type-of'
-import { Node, State } from 'slate'
+import { Node, Value } from 'slate'
 import { Record } from 'immutable'
 
 /**
@@ -27,10 +26,13 @@ const String = new Record({
 const TEXT_RULE = {
 
   deserialize(el) {
-    if (el.tagName == 'br') {
+    if (el.tagName && el.tagName.toLowerCase() === 'br') {
       return {
         kind: 'text',
-        ranges: [{ text: '\n' }],
+        leaves: [{
+          kind: 'leaf',
+          text: '\n'
+        }]
       }
     }
 
@@ -39,13 +41,16 @@ const TEXT_RULE = {
 
       return {
         kind: 'text',
-        ranges: [{ text: el.value || el.nodeValue }],
+        leaves: [{
+          kind: 'leaf',
+          text: el.value || el.nodeValue
+        }]
       }
     }
   },
 
   serialize(obj, children) {
-    if (obj.kind == 'string') {
+    if (obj.kind === 'string') {
       return children
         .split('\n')
         .reduce((array, text, i) => {
@@ -66,7 +71,7 @@ const TEXT_RULE = {
  */
 
 function defaultParseHtml(html) {
-  if (typeof DOMParser == 'undefined') {
+  if (typeof DOMParser === 'undefined') {
     throw new Error('The native `DOMParser` global which the `Html` serializer uses by default is not present in this environment. You must supply the `options.parseHtml` function instead.')
   }
 
@@ -99,11 +104,6 @@ class Html {
       rules = [],
     } = options
 
-    if (options.defaultBlockType) {
-      logger.deprecate('0.23.0', 'The `options.defaultBlockType` argument of the `Html` serializer is deprecated, use `options.defaultBlock` instead.')
-      defaultBlock = options.defaultBlockType
-    }
-
     defaultBlock = Node.createProperties(defaultBlock)
 
     this.rules = [ ...rules, TEXT_RULE ]
@@ -117,17 +117,11 @@ class Html {
    * @param {String} html
    * @param {Object} options
    *   @property {Boolean} toRaw
-   * @return {State}
+   * @return {Value}
    */
 
   deserialize = (html, options = {}) => {
-    let { toJSON = false } = options
-
-    if (options.toRaw) {
-      logger.deprecate('0.23.0', 'The `options.toRaw` argument of the `Html` serializer is deprecated, use `options.toJSON` instead.')
-      toJSON = options.toRaw
-    }
-
+    const { toJSON = false } = options
     const { defaultBlock, parseHtml } = this
     const fragment = parseHtml(html)
     const children = Array.from(fragment.childNodes)
@@ -168,9 +162,9 @@ class Html {
         nodes: [
           {
             kind: 'text',
-            ranges: [
+            leaves: [
               {
-                kind: 'range',
+                kind: 'leaf',
                 text: '',
                 marks: [],
               }
@@ -181,7 +175,7 @@ class Html {
     }
 
     const json = {
-      kind: 'state',
+      kind: 'value',
       document: {
         kind: 'document',
         data: {},
@@ -189,7 +183,7 @@ class Html {
       }
     }
 
-    const ret = toJSON ? json : State.fromJSON(json)
+    const ret = toJSON ? json : Value.fromJSON(json)
     return ret
   }
 
@@ -250,8 +244,7 @@ class Html {
       }
     }
 
-    for (let i = 0; i < this.rules.length; i++) {
-      const rule = this.rules[i]
+    for (const rule of this.rules) {
       if (!rule.deserialize) continue
       const ret = rule.deserialize(element, next)
       const type = typeOf(ret)
@@ -292,10 +285,10 @@ class Html {
       }
 
       else if (node.kind == 'text') {
-        node.ranges = node.ranges.map((range) => {
-          range.marks = range.marks || []
-          range.marks.push({ type, data })
-          return range
+        node.leaves = node.leaves.map((leaf) => {
+          leaf.marks = leaf.marks || []
+          leaf.marks.push({ type, data })
+          return leaf
         })
       }
 
@@ -315,16 +308,16 @@ class Html {
   }
 
   /**
-   * Serialize a `state` object into an HTML string.
+   * Serialize a `value` object into an HTML string.
    *
-   * @param {State} state
+   * @param {Value} value
    * @param {Object} options
    *   @property {Boolean} render
    * @return {String|Array}
    */
 
-  serialize = (state, options = {}) => {
-    const { document } = state
+  serialize = (value, options = {}) => {
+    const { document } = value
     const elements = document.nodes.map(this.serializeNode)
     if (options.render === false) return elements
 
@@ -341,15 +334,14 @@ class Html {
    */
 
   serializeNode = (node) => {
-    if (node.kind == 'text') {
-      const ranges = node.getRanges()
-      return ranges.map(this.serializeRange)
+    if (node.kind === 'text') {
+      const leaves = node.getLeaves()
+      return leaves.map(this.serializeLeaf)
     }
 
     const children = node.nodes.map(this.serializeNode)
 
-    for (let i = 0; i < this.rules.length; i++) {
-      const rule = this.rules[i]
+    for (const rule of this.rules) {
       if (!rule.serialize) continue
       const ret = rule.serialize(node, children)
       if (ret) return addKey(ret)
@@ -359,19 +351,18 @@ class Html {
   }
 
   /**
-   * Serialize a `range`.
+   * Serialize a `leaf`.
    *
-   * @param {Range} range
+   * @param {Leaf} leaf
    * @return {String}
    */
 
-  serializeRange = (range) => {
-    const string = new String({ text: range.text })
+  serializeLeaf = (leaf) => {
+    const string = new String({ text: leaf.text })
     const text = this.serializeString(string)
 
-    return range.marks.reduce((children, mark) => {
-      for (let i = 0; i < this.rules.length; i++) {
-        const rule = this.rules[i]
+    return leaf.marks.reduce((children, mark) => {
+      for (const rule of this.rules) {
         if (!rule.serialize) continue
         const ret = rule.serialize(mark, children)
         if (ret) return addKey(ret)
@@ -389,8 +380,7 @@ class Html {
    */
 
   serializeString = (string) => {
-    for (let i = 0; i < this.rules.length; i++) {
-      const rule = this.rules[i]
+    for (const rule of this.rules) {
       if (!rule.serialize) continue
       const ret = rule.serialize(string, string.text)
       if (ret) return ret
@@ -405,7 +395,7 @@ class Html {
    */
 
   cruftNewline = (element) => {
-    return !(element.nodeName == '#text' && element.value == '\n')
+    return !(element.nodeName === '#text' && element.value == '\n')
   }
 
 }

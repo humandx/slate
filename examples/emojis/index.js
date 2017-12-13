@@ -1,9 +1,9 @@
 
 import { Editor } from 'slate-react'
-import { State } from 'slate'
+import { Value } from 'slate'
 
 import React from 'react'
-import initialState from './state.json'
+import initialValue from './value.json'
 
 /**
  * Emojis.
@@ -18,22 +18,12 @@ const EMOJIS = [
 ]
 
 /**
- * Define a schema.
+ * No ops.
  *
- * @type {Object}
+ * @type {Function}
  */
 
-const schema = {
-  nodes: {
-    paragraph: props => <p {...props.attributes}>{props.children}</p>,
-    emoji: (props) => {
-      const { isSelected, node } = props
-      const { data } = node
-      const code = data.get('code')
-      return <span className={`emoji ${isSelected ? 'selected' : ''}`} {...props.attributes} contentEditable={false}>{code}</span>
-    }
-  }
-}
+const noop = e => e.preventDefault()
 
 /**
  * The links example.
@@ -44,13 +34,13 @@ const schema = {
 class Emojis extends React.Component {
 
   /**
-   * Deserialize the raw initial state.
+   * Deserialize the raw initial value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState)
+    value: Value.fromJSON(initialValue)
   }
 
   /**
@@ -59,8 +49,8 @@ class Emojis extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
@@ -71,13 +61,14 @@ class Emojis extends React.Component {
 
   onClickEmoji = (e, code) => {
     e.preventDefault()
-    const change = this.state.state
-      .change()
-      .insertInline({
-        type: 'emoji',
-        isVoid: true,
-        data: { code }
-      })
+    const { value } = this.state
+    const change = value.change()
+
+    change.insertInline({
+      type: 'emoji',
+      isVoid: true,
+      data: { code }
+    })
 
     this.onChange(change)
   }
@@ -128,12 +119,43 @@ class Emojis extends React.Component {
     return (
       <div className="editor">
         <Editor
-          schema={schema}
-          state={this.state.state}
+          placeholder="Write some 😍👋🎉..."
+          value={this.state.value}
           onChange={this.onChange}
+          renderNode={this.renderNode}
         />
       </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    const { attributes, children, node, isSelected } = props
+    switch (node.type) {
+      case 'paragraph': {
+        return <p {...attributes}>{children}</p>
+      }
+      case 'emoji': {
+        const { data } = node
+        const code = data.get('code')
+        return (
+          <span
+            className={`emoji ${isSelected ? 'selected' : ''}`}
+            {...props.attributes}
+            contentEditable={false}
+            onDrop={noop}
+          >
+            {code}
+          </span>
+        )
+      }
+    }
   }
 
 }

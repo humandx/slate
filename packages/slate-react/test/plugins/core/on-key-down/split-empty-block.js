@@ -3,26 +3,26 @@
 import h from '../../../helpers/h'
 
 export default function (simulator) {
-  simulator.keyDown(null, { key: 'enter' })
+  simulator.keyDown({ key: 'Enter' })
 }
 
 export const input = (
-  <state>
+  <value>
     <document>
       <paragraph>
         <cursor />
       </paragraph>
     </document>
-  </state>
+  </value>
 )
 
 export const output = (
-  <state>
+  <value>
     <document>
       <paragraph />
       <paragraph>
         <cursor />
       </paragraph>
     </document>
-  </state>
+  </value>
 )

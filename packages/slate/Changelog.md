@@ -7,6 +7,106 @@ This document maintains a list of changes to the `slate` package with each new v
 ---
 
 
+### `0.31.0` — November 16, 2017
+
+###### BREAKING
+
+- **Operation objects in Slate are now immutable records.** Previously they were native, mutable Javascript objects. Now, there's a new immutable `Operation` model in Slate, ensuring that all of the data inside `Value` objects are immutable. And it allows for easy serialization of operations using `operation.toJSON()` for when sending them between editors. This should not affect most users, unless you are relying on changing the values of the low-level Slate operations (simply reading them is fine).
+
+- **Operation lists in Slate are now immutable lists.** Previously they were native, mutable Javascript arrays. Now, to keep consistent with other immutable uses, they are immutable lists. This should not affect most users.
+
+###### NEW
+
+- **Added a new `Operation` model.** This model is used to store operations for the history stack, and (de)serializes them in a consistent way for collaborative editing use cases.
+
+
+---
+
+
+### `0.30.0` — October 27, 2017
+
+###### BREAKING
+
+- **Remove all previously deprecated code paths.** This helps to reduce some of the complexity in Slate by not having to handle these code paths anymore. And it helps to reduce file size. When upgrading, it's _highly_ recommended that you upgrade to the previous version first and ensure there are no deprecation warnings being logged, then upgrade to this version.
+
+
+---
+
+
+### `0.29.0` — October 27, 2017
+
+###### BREAKING
+
+- **The `set_state` operation has been renamed `set_value`**. This shouldn't affect almost anyone, but in the event that you were relying on the low-level operation types you'll need to update this.
+
+###### DEPRECATED
+
+- **The "state" has been renamed to "value" everywhere.** All of the current references are maintained as deprecations, so you should be able to upgrade and see warnings logged instead of being greeted with a broken editor. This is to reduce the confusion between React's "state" and Slate's editor value, and in an effort to further mimic the native DOM APIs.
+
+###### NEW
+
+- **Added the new `Value` model to replace `State`.** The new model is exactly the same, but with a new name. There is also a shimmed `State` model exported that warns when used, to ease migration.
+
+
+---
+
+
+### `0.28.0` — October 25, 2017
+
+###### BREAKING
+
+- **The `Schema` objects in Slate have changed!** Previously, they used to be where you could define normalization rules, define rendering rules, and define decoration rules. This was overloaded, and made other improvements hard. Now, rendering and decorating is done via the newly added plugin functions (`renderNode`, `renderMark`, `decorateNode`). And validation is done either via the lower-level `validateNode` plugin function, or via the new `schema` objects.
+
+- **The `normalize*` change methods no longer take a `schema` argument.** Previously you had to maintain a reference to your schema, and pass it into the normalize methods when you called them. Since `State` objects now have an embedded `state.schema` property, this is no longer needed.
+
+###### NEW
+
+- **`State` objects now have an embedded `state.schema` property.** This new schema property is used to automatically normalize the state as it changes, according to the editor's current schema. This makes normalization much easier.
+
+
+---
+
+
+### `0.27.0` — October 14, 2017
+
+###### BREAKING
+
+- **The `Range` model is now called `Leaf`.** This is to disambiguate with the concept of "ranges" that is used throughout the codebase to be synonymous to selections. For example in methods like `getBlocksAtRange(selection)`.
+
+- **The `text.ranges` property in the JSON representation is now `text.leaves`.** When passing in JSON with `text.ranges` you'll now receive a deprecation warning in the console in development.
+
+###### DEPRECATED
+
+- **The `Selection` model is now called `Range`.** This is to make it more clear what a "selection" really is, to make many of the other methods that act on "ranges" make sense, and to more closely parallel the native DOM API for selections and ranges. A mock `Selection` object is still exported with deprecated `static` methods, to make the transition to the new API easier.
+
+- **The `Text.getRanges()` method is now `Text.getLeaves()`.** It will still work, and it will return a list of leaves, but you will see a deprecation warning in the console in development.
+
+
+---
+
+
+### `0.26.0` — October 13, 2017
+
+###### BREAKING
+
+- **The `decorate` function of schema rules has changed.** Previously, in `decorate` you would receive a text node and the matched node, and you'd need to manually add any marks you wanted to the text node's characters. Now, "decorations" have changed to just be `Selection` objects with marks in the `selection.marks` property. Instead of applying the marks yourself, you simply return selection ranges with the marks to be applied, and Slate will apply them internally. This makes it possible to write much more complex decoration behaviors. Check out the revamped [`code-highlighting`](https://github.com/ianstormtaylor/slate/blob/master/examples/code-highlighting/index.js) example and the new [`search-highlighting`](https://github.com/ianstormtaylor/slate/blob/master/examples/search-highlighting/index.js) example to see this in action.
+
+- **The `set_data` operation type has been replaced by `set_state`.** With the new `state.decorations` property, it doesn't make sense to have a new operation type for every property of `State` objects. Instead, the new `set_state` operation more closely mimics the existing `set_mark` and `set_node` operations.
+
+###### DEPRECATED
+
+- **The `setData` change method has been replaced by `setState`.** Previously you would call `change.setData(data)`. But as new `State` properties are introduced it doesn't make sense to need to add new change methods each time. Instead, the new `change.setState(properties)` more closesely mimics the existing `setMarkByKey` and `setNodeByKey`. To achieve the old behavior, you can do `change.setState({ data })`.
+
+- **The `preserveStateData` option of `state.toJSON` has changed.** The same behavior is now called `preserveData` instead. This makes it consistent with all of the existing options, and the new `preserveDecorations` option as well.
+
+###### NEW
+
+- **You can now set decorations based on external information.** Previously, the "decoration" logic in Slate was always based off of the text of a node, and would only re-render when that text changed. Now, there is a new `state.decorations` property that you can set via `change.setState({ decorations })`. You can use this to add presentation-only marks to arbitrary ranges of text in the document. Check out the new [`search-highlighting`](https://github.com/ianstormtaylor/slate/blob/master/examples/search-highlighting/index.js) example to see this in action.
+
+
+---
+
+
 ### `0.25.0` — September 21, 2017
 
 ###### BREAKING

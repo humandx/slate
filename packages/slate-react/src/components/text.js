@@ -1,5 +1,6 @@
 
 import Debug from 'debug'
+import ImmutableTypes from 'react-immutable-proptypes'
 import React from 'react'
 import SlateTypes from 'slate-prop-types'
 import Types from 'prop-types'
@@ -14,6 +15,12 @@ import Leaf from './leaf'
 
 const debug = Debug('slate:node')
 
+/**
+ * Text.
+ *
+ * @type {Component}
+ */
+
 class Text extends React.Component {
 
   /**
@@ -24,11 +31,21 @@ class Text extends React.Component {
 
   static propTypes = {
     block: SlateTypes.block,
+    decorations: ImmutableTypes.list.isRequired,
     editor: Types.object.isRequired,
     node: SlateTypes.node.isRequired,
     parent: SlateTypes.node.isRequired,
-    schema: SlateTypes.schema.isRequired,
-    state: SlateTypes.state.isRequired,
+    style: Types.object,
+  }
+
+  /**
+   * Default prop types.
+   *
+   * @type {Object}
+   */
+
+  static defaultProps = {
+    style: null,
   }
 
   /**
@@ -48,7 +65,7 @@ class Text extends React.Component {
    * Should the node update?
    *
    * @param {Object} nextProps
-   * @param {Object} state
+   * @param {Object} value
    * @return {Boolean}
    */
 
@@ -63,23 +80,16 @@ class Text extends React.Component {
     // for simplicity we just let them through.
     if (n.node != p.node) return true
 
-    // Re-render if the current decorations have changed, even if the content of
-    // the text node itself hasn't.
-    if (n.schema.hasDecorators) {
-      const nDecorators = n.state.document.getDescendantDecorators(n.node.key, n.schema)
-      const pDecorators = p.state.document.getDescendantDecorators(p.node.key, p.schema)
-      const nRanges = n.node.getRanges(nDecorators)
-      const pRanges = p.node.getRanges(pDecorators)
-      if (!nRanges.equals(pRanges)) return true
-    }
-
     // If the node parent is a block node, and it was the last child of the
-    // block, re-render to cleanup extra `<br/>` or `\n`.
+    // block, re-render to cleanup extra `\n`.
     if (n.parent.kind == 'block') {
       const pLast = p.parent.nodes.last()
       const nLast = n.parent.nodes.last()
       if (p.node == pLast && n.node != nLast) return true
     }
+
+    // Re-render if the current decorations have changed.
+    if (!n.decorations.equals(p.decorations)) return true
 
     // Otherwise, don't update.
     return false
@@ -92,41 +102,50 @@ class Text extends React.Component {
    */
 
   render() {
-    const { props } = this
-    this.debug('render', { props })
+    this.debug('render', this)
 
-    const { node, schema, state } = props
-    const { document } = state
-    const decorators = schema.hasDecorators ? document.getDescendantDecorators(node.key, schema) : []
-    const ranges = node.getRanges(decorators)
+    const { decorations, editor, node, style } = this.props
+    const { value } = editor
+    const { document } = value
+    const { key } = node
+
+    const decs = decorations.filter((d) => {
+      const { startKey, endKey } = d
+      if (startKey == key || endKey == key) return true
+      const startsBefore = document.areDescendantsSorted(startKey, key)
+      const endsAfter = document.areDescendantsSorted(key, endKey)
+      return startsBefore && endsAfter
+    })
+
+    const leaves = node.getLeaves(decs)
     let offset = 0
 
-    const leaves = ranges.map((range, i) => {
-      const leaf = this.renderLeaf(ranges, range, i, offset)
-      offset += range.text.length
-      return leaf
+    const children = leaves.map((leaf, i) => {
+      const child = this.renderLeaf(leaves, leaf, i, offset)
+      offset += leaf.text.length
+      return child
     })
 
     return (
-      <span data-key={node.key}>
-        {leaves}
+      <span data-key={key} style={style}>
+        {children}
       </span>
     )
   }
 
   /**
-   * Render a single leaf node given a `range` and `offset`.
+   * Render a single leaf given a `leaf` and `offset`.
    *
-   * @param {List<Range>} ranges
-   * @param {Range} range
+   * @param {List<Leaf>} leaves
+   * @param {Leaf} leaf
    * @param {Number} index
    * @param {Number} offset
    * @return {Element} leaf
    */
 
-  renderLeaf = (ranges, range, index, offset) => {
-    const { block, node, parent, schema, state, editor } = this.props
-    const { text, marks } = range
+  renderLeaf = (leaves, leaf, index, offset) => {
+    const { block, node, parent, editor } = this.props
+    const { text, marks } = leaf
 
     return (
       <Leaf
@@ -138,9 +157,7 @@ class Text extends React.Component {
         node={node}
         offset={offset}
         parent={parent}
-        ranges={ranges}
-        schema={schema}
-        state={state}
+        leaves={leaves}
         text={text}
       />
     )

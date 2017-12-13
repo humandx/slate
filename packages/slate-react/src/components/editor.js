@@ -5,9 +5,12 @@ import React from 'react'
 import SlateTypes from 'slate-prop-types'
 import Types from 'prop-types'
 import logger from 'slate-dev-logger'
-import { Stack, State } from 'slate'
+import { Schema, Stack } from 'slate'
 
-import CorePlugin from '../plugins/core'
+import EVENT_HANDLERS from '../constants/event-handlers'
+import PLUGINS_PROPS from '../constants/plugin-props'
+import AfterPlugin from '../plugins/after'
+import BeforePlugin from '../plugins/before'
 import noop from '../utils/noop'
 
 /**
@@ -17,40 +20,6 @@ import noop from '../utils/noop'
  */
 
 const debug = Debug('slate:editor')
-
-/**
- * Event handlers to mix in to the editor.
- *
- * @type {Array}
- */
-
-const EVENT_HANDLERS = [
-  'onBeforeInput',
-  'onBlur',
-  'onFocus',
-  'onCopy',
-  'onCut',
-  'onDrop',
-  'onKeyDown',
-  'onKeyUp',
-  'onPaste',
-  'onSelect',
-]
-
-/**
- * Plugin-related properties of the editor.
- *
- * @type {Array}
- */
-
-const PLUGINS_PROPS = [
-  ...EVENT_HANDLERS,
-  'placeholder',
-  'placeholderClassName',
-  'placeholderStyle',
-  'plugins',
-  'schema',
-]
 
 /**
  * Editor.
@@ -70,19 +39,16 @@ class Editor extends React.Component {
     autoCorrect: Types.bool,
     autoFocus: Types.bool,
     className: Types.string,
-    onBeforeChange: Types.func,
     onChange: Types.func,
     placeholder: Types.any,
-    placeholderClassName: Types.string,
-    placeholderStyle: Types.object,
     plugins: Types.array,
     readOnly: Types.bool,
     role: Types.string,
     schema: Types.object,
     spellCheck: Types.bool,
-    state: SlateTypes.state.isRequired,
     style: Types.object,
     tabIndex: Types.number,
+    value: SlateTypes.value.isRequired,
   }
 
   /**
@@ -102,80 +68,149 @@ class Editor extends React.Component {
   }
 
   /**
-   * When constructed, create a new `Stack` and run `onBeforeChange`.
+   * Constructor.
    *
    * @param {Object} props
    */
 
   constructor(props) {
     super(props)
-    this.tmp = {}
     this.state = {}
+    this.tmp = {}
+    this.tmp.updates = 0
+    this.tmp.resolves = 0
 
-    // Create a new `Stack`, omitting the `onChange` property since that has
-    // special significance on the editor itself.
-    const { state } = props
-    const plugins = resolvePlugins(props)
+    // Resolve the plugins and create a stack and schema from them.
+    const plugins = this.resolvePlugins(props.plugins, props.schema)
     const stack = Stack.create({ plugins })
+    const schema = Schema.create({ plugins })
+    this.state.schema = schema
     this.state.stack = stack
 
-    // Cache and set the state.
-    this.cacheState(state)
-    this.state.state = state
+    // Run `onChange` on the passed-in value because we need to ensure that it
+    // is normalized, and queue the resulting change.
+    const change = props.value.change()
+    stack.run('onChange', change, this)
+    this.queueChange(change)
+    this.state.value = change.value
 
     // Create a bound event handler for each event.
-    for (let i = 0; i < EVENT_HANDLERS.length; i++) {
-      const method = EVENT_HANDLERS[i]
-      this[method] = (...args) => {
-        const stk = this.state.stack
-        const change = this.state.state.change()
-        stk[method](change, this, ...args)
-        this.onChange(change)
+    EVENT_HANDLERS.forEach((handler) => {
+      this[handler] = (...args) => {
+        this.onEvent(handler, ...args)
       }
-    }
-
-    if (props.onDocumentChange) {
-      logger.deprecate('0.22.10', 'The `onDocumentChange` prop is deprecated because it led to confusing UX issues, see https://github.com/ianstormtaylor/slate/issues/614#issuecomment-327868679')
-    }
-
-    if (props.onSelectionChange) {
-      logger.deprecate('0.22.10', 'The `onSelectionChange` prop is deprecated because it led to confusing UX issues, see https://github.com/ianstormtaylor/slate/issues/614#issuecomment-327868679')
-    }
+    })
   }
 
   /**
-   * When the `props` are updated, create a new `Stack` if necessary.
+   * When the `props` are updated, create a new `Stack` if necessary and run
+   * `onChange` to ensure the value is normalized.
    *
    * @param {Object} props
    */
 
   componentWillReceiveProps = (props) => {
-    const { state } = props
+    let { schema, stack } = this
 
-    // If any plugin-related properties will change, create a new `Stack`.
-    for (let i = 0; i < PLUGINS_PROPS.length; i++) {
-      const prop = PLUGINS_PROPS[i]
-      if (props[prop] == this.props[prop]) continue
-      const plugins = resolvePlugins(props)
-      const stack = Stack.create({ plugins })
-      this.setState({ stack })
+    // Increment the updates counter as a baseline.
+    this.tmp.updates++
+
+    // If the plugins or the schema have changed, we need to re-resolve the
+    // plugins, since it will result in a new stack and new validations.
+    if (props.plugins != this.props.plugins || props.schema != this.props.schema) {
+      const plugins = this.resolvePlugins(props.plugins, props.schema)
+      stack = Stack.create({ plugins })
+      schema = Schema.create({ plugins })
+      this.setState({ schema, stack })
+
+      // Increment the resolves counter.
+      this.tmp.resolves++
+
+      // If we've resolved a few times already, and it's exactly in line with
+      // the updates, then warn the user that they may be doing something wrong.
+      if (this.tmp.resolves > 5 && this.tmp.resolves == this.tmp.updates) {
+        logger.warn('A Slate <Editor> is re-resolving `props.plugins` or `props.schema` on each update, which leads to poor performance. This is often due to passing in a new `schema` or `plugins` prop with each render by declaring them inline in your render function. Do not do this!')
+      }
     }
 
-    // Cache and save the state.
-    this.cacheState(state)
-    this.setState({ state })
+    // Run `onChange` on the passed-in value because we need to ensure that it
+    // is normalized, and queue the resulting change.
+    const change = props.value.change()
+    stack.run('onChange', change, this)
+    this.queueChange(change)
+    this.setState({ value: change.value })
   }
 
   /**
-   * Cache a `state` in memory to be able to compare against it later, for
-   * things like `onDocumentChange`.
-   *
-   * @param {State} state
+   * When the component first mounts, flush any temporary changes.
    */
 
-  cacheState = (state) => {
-    this.tmp.document = state.document
-    this.tmp.selection = state.selection
+  componentDidMount = () => {
+    this.flushChange()
+  }
+
+  /**
+   * When the component updates, flush any temporary change.
+   */
+
+  componentDidUpdate = () => {
+    this.flushChange()
+  }
+
+  /**
+   * When the component unmounts, clear flushTimeout if it has been set
+   * to avoid calling onChange after unmount.
+   */
+
+  componentWillUnmount = () => {
+    if (this.tmp.flushTimeout) {
+      clearTimeout(this.tmp.flushTimeout)
+    }
+  }
+
+  /**
+   * Queue a `change` object, to be able to flush it later. This is required for
+   * when a change needs to be applied to the value, but because of the React
+   * lifecycle we can't apply that change immediately. So we cache it here and
+   * later can call `this.flushChange()` to flush it.
+   *
+   * @param {Change} change
+   */
+
+  queueChange = (change) => {
+    if (change.operations.length) {
+      debug('queueChange', { change })
+      this.tmp.change = change
+    }
+  }
+
+  /**
+   * Flush a temporarily stored `change` object, for when a change needed to be
+   * made but couldn't because of React's lifecycle.
+   */
+
+  flushChange = () => {
+    const { change } = this.tmp
+
+    if (change && !this.tmp.flushTimeout) {
+      debug('flushChange', { change })
+      this.tmp.flushTimeout = setTimeout(() => {
+        delete this.tmp.change
+        delete this.tmp.flushTimeout
+        this.props.onChange(change)
+      })
+    }
+  }
+
+  /**
+   * Perform a change on the editor, passing `...args` to `change.call`.
+   *
+   * @param {Mixed} ...args
+   */
+
+  change = (...args) => {
+    const change = this.value.change().call(...args)
+    this.onChange(change)
   }
 
   /**
@@ -183,7 +218,7 @@ class Editor extends React.Component {
    */
 
   blur = () => {
-    this.change(t => t.blur())
+    this.change(c => c.blur())
   }
 
   /**
@@ -191,39 +226,36 @@ class Editor extends React.Component {
    */
 
   focus = () => {
-    this.change(t => t.focus())
+    this.change(c => c.focus())
   }
 
   /**
-   * Get the editor's current schema.
-   *
-   * @return {Schema}
+   * Getters for exposing public properties of the editor's state.
    */
 
-  getSchema = () => {
-    return this.state.stack.schema
+  get schema() {
+    return this.state.schema
+  }
+
+  get stack() {
+    return this.state.stack
+  }
+
+  get value() {
+    return this.state.value
   }
 
   /**
-   * Get the editor's current state.
+   * On event.
    *
-   * @return {State}
+   * @param {String} handler
+   * @param {Event} event
    */
 
-  getState = () => {
-    return this.state.state
-  }
-
-  /**
-   * Perform a change `fn` on the editor's current state.
-   *
-   * @param {Function} fn
-   */
-
-  change = (fn) => {
-    const change = this.state.state.change()
-    fn(change)
-    this.onChange(change)
+  onEvent = (handler, event) => {
+    this.change((change) => {
+      this.stack.run(handler, event, change, this)
+    })
   }
 
   /**
@@ -233,22 +265,13 @@ class Editor extends React.Component {
    */
 
   onChange = (change) => {
-    if (State.isState(change)) {
-      throw new Error('As of slate@0.22.0 the `editor.onChange` method must be passed a `Change` object not a `State` object.')
-    }
+    debug('onChange', { change })
 
-    const { onChange, onDocumentChange, onSelectionChange } = this.props
-    const { stack } = this.state
-    const { document, selection } = this.tmp
-    const { state } = change
-    if (state == this.state.state) return
-
-    stack.onBeforeChange(change, this)
-    stack.onChange(change, this)
-
+    this.stack.run('onChange', change, this)
+    const { value } = change
+    const { onChange } = this.props
+    if (value == this.value) return
     onChange(change)
-    if (onDocumentChange && state.document != document) onDocumentChange(state.document, change)
-    if (onSelectionChange && state.selection != selection) onSelectionChange(state.selection, change)
   }
 
   /**
@@ -258,55 +281,69 @@ class Editor extends React.Component {
    */
 
   render() {
-    const { props, state } = this
-    const { stack } = state
-    const children = stack
-      .renderPortal(state.state, this)
+    debug('render', this)
+
+    const children = this.stack
+      .map('renderPortal', this.value, this)
       .map((child, i) => <Portal key={i} isOpened>{child}</Portal>)
 
-    debug('render', { props, state })
-
-    const tree = stack.render(state.state, this, { ...props, children })
+    const props = { ...this.props, children }
+    const tree = this.stack.render('renderEditor', props, this)
     return tree
+  }
+
+  /**
+   * Resolve an array of plugins from `plugins` and `schema` props.
+   *
+   * In addition to the plugins provided in props, this will initialize three
+   * other plugins:
+   *
+   * - The top-level editor plugin, which allows for top-level handlers, etc.
+   * - The two "core" plugins, one before all the other and one after.
+   *
+   * @param {Array|Void} plugins
+   * @param {Schema|Object|Void} schema
+   * @return {Array}
+   */
+
+  resolvePlugins = (plugins, schema) => {
+    const beforePlugin = BeforePlugin()
+    const afterPlugin = AfterPlugin()
+    const editorPlugin = {
+      schema: schema || {}
+    }
+
+    for (const prop of PLUGINS_PROPS) {
+      // Skip `onChange` because the editor's `onChange` is special.
+      if (prop == 'onChange') continue
+
+      // Skip `schema` because it can't be proxied easily, so it must be
+      // passed in as an argument to this function instead.
+      if (prop == 'schema') continue
+
+      // Define a function that will just proxies into `props`.
+      editorPlugin[prop] = (...args) => {
+        return this.props[prop] && this.props[prop](...args)
+      }
+    }
+
+    return [
+      beforePlugin,
+      editorPlugin,
+      ...(plugins || []),
+      afterPlugin
+    ]
   }
 
 }
 
-/**
- * Resolve an array of plugins from `props`.
- *
- * In addition to the plugins provided in `props.plugins`, this will create
- * two other plugins:
- *
- * - A plugin made from the top-level `props` themselves, which are placed at
- * the beginning of the stack. That way, you can add a `onKeyDown` handler,
- * and it will override all of the existing plugins.
- *
- * - A "core" functionality plugin that handles the most basic events in
- * Slate, like deleting characters, splitting blocks, etc.
- *
- * @param {Object} props
- * @return {Array}
- */
-
-function resolvePlugins(props) {
-  // eslint-disable-next-line no-unused-vars
-  const { state, onChange, plugins = [], ...overridePlugin } = props
-  const corePlugin = CorePlugin(props)
-  return [
-    overridePlugin,
-    ...plugins,
-    corePlugin
-  ]
-}
 
 /**
  * Mix in the property types for the event handlers.
  */
 
-for (let i = 0; i < EVENT_HANDLERS.length; i++) {
-  const property = EVENT_HANDLERS[i]
-  Editor.propTypes[property] = Types.func
+for (const prop of EVENT_HANDLERS) {
+  Editor.propTypes[prop] = Types.func
 }
 
 /**

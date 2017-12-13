@@ -1,5 +1,6 @@
 
-import { State } from 'slate'
+import { Value } from 'slate'
+import { atob, btoa } from 'isomorphic-base64'
 
 /**
  * Encode a JSON `object` as base-64 `string`.
@@ -10,7 +11,7 @@ import { State } from 'slate'
 
 function encode(object) {
   const string = JSON.stringify(object)
-  const encoded = window.btoa(window.encodeURIComponent(string))
+  const encoded = btoa(encodeURIComponent(string))
   return encoded
 }
 
@@ -22,22 +23,22 @@ function encode(object) {
  */
 
 function decode(string) {
-  const decoded = window.decodeURIComponent(window.atob(string))
+  const decoded = decodeURIComponent(atob(string))
   const object = JSON.parse(decoded)
   return object
 }
 
 /**
- * Deserialize a State `string`.
+ * Deserialize a Value `string`.
  *
  * @param {String} string
- * @return {State}
+ * @return {Value}
  */
 
 function deserialize(string, options) {
   const raw = decode(string)
-  const state = State.fromJSON(raw, options)
-  return state
+  const value = Value.fromJSON(raw, options)
+  return value
 }
 
 /**
@@ -55,14 +56,14 @@ function deserializeNode(string, options) {
 }
 
 /**
- * Serialize a `state`.
+ * Serialize a `value`.
  *
- * @param {State} state
+ * @param {Value} value
  * @return {String}
  */
 
-function serialize(state, options) {
-  const raw = state.toJSON(options)
+function serialize(value, options) {
+  const raw = value.toJSON(options)
   const encoded = encode(raw)
   return encoded
 }

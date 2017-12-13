@@ -3,14 +3,17 @@
 
 import h from '../../test/helpers/h'
 
-export default function (state) {
-  state
-    .change()
-    .deleteBackward()
+export default function (change) {
+  change.deleteBackward()
+}
+
+export function before(value) {
+  const change = value.change()
+  return change
 }
 
 export const input = (
-  <state>
+  <value>
     <document>
       {Array.from(Array(10)).map((v, i) => (
         <quote>
@@ -23,5 +26,5 @@ export const input = (
         </quote>
       ))}
     </document>
-  </state>
+  </value>
 )

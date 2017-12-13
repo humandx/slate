@@ -1,83 +1,18 @@
 
-import { Editor } from 'slate-react'
-import { Block, State } from 'slate'
+import { Editor, getEventRange, getEventTransfer } from 'slate-react'
+import { Block, Value } from 'slate'
 
 import React from 'react'
-import initialState from './state.json'
+import initialValue from './value.json'
 import isImage from 'is-image'
 import isUrl from 'is-url'
-
-/**
- * Default block to be inserted when the document is empty,
- * and after an image is the last node in the document.
- *
- * @type {Object}
- */
-
-const defaultBlock = {
-  type: 'paragraph',
-  isVoid: false,
-  data: {}
-}
-
-/**
- * Define a schema.
- *
- * @type {Object}
- */
-
-const schema = {
-  nodes: {
-    image: (props) => {
-      const { node, isSelected } = props
-      const src = node.data.get('src')
-      const className = isSelected ? 'active' : null
-      return (
-        <img src={src} className={className} {...props.attributes} />
-      )
-    },
-    paragraph: (props) => {
-      return <p {...props.attributes}>{props.children}</p>
-    }
-  },
-  rules: [
-    // Rule to insert a paragraph block if the document is empty.
-    {
-      match: (node) => {
-        return node.kind == 'document'
-      },
-      validate: (document) => {
-        return document.nodes.size ? null : true
-      },
-      normalize: (change, document) => {
-        const block = Block.create(defaultBlock)
-        change.insertNodeByKey(document.key, 0, block)
-      }
-    },
-    // Rule to insert a paragraph below a void node (the image) if that node is
-    // the last one in the document.
-    {
-      match: (node) => {
-        return node.kind == 'document'
-      },
-      validate: (document) => {
-        const lastNode = document.nodes.last()
-        return lastNode && lastNode.isVoid ? true : null
-      },
-      normalize: (change, document) => {
-        const block = Block.create(defaultBlock)
-        change.insertNodeByKey(document.key, document.nodes.size, block)
-      }
-    }
-  ]
-}
 
 /**
  * A change function to standardize inserting images.
  *
  * @param {Change} change
  * @param {String} src
- * @param {Selection} target
+ * @param {Range} target
  */
 
 function insertImage(change, src, target) {
@@ -93,6 +28,26 @@ function insertImage(change, src, target) {
 }
 
 /**
+ * A schema to enforce that there's always a paragraph as the last block.
+ *
+ * @type {Object}
+ */
+
+const schema = {
+  document: {
+    last: { types: ['paragraph'] },
+    normalize: (change, reason, { node, child }) => {
+      switch (reason) {
+        case 'last_child_type_invalid': {
+          const paragraph = Block.create('paragraph')
+          return change.insertNodeByKey(node.key, node.nodes.size, paragraph)
+        }
+      }
+    }
+  }
+}
+
+/**
  * The images example.
  *
  * @type {Component}
@@ -101,13 +56,13 @@ function insertImage(change, src, target) {
 class Images extends React.Component {
 
   /**
-   * Deserialize the raw initial state.
+   * Deserialize the raw initial value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState)
+    value: Value.fromJSON(initialValue)
   }
 
   /**
@@ -151,14 +106,37 @@ class Images extends React.Component {
     return (
       <div className="editor">
         <Editor
+          placeholder="Enter some text..."
+          value={this.state.value}
           schema={schema}
-          state={this.state.state}
           onChange={this.onChange}
-          onDrop={this.onDrop}
-          onPaste={this.onPaste}
+          onDrop={this.onDropOrPaste}
+          onPaste={this.onDropOrPaste}
+          renderNode={this.renderNode}
         />
       </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    const { attributes, node, isSelected } = props
+    switch (node.type) {
+      case 'image': {
+        const src = node.data.get('src')
+        const className = isSelected ? 'active' : null
+        const style = { display: 'block' }
+        return (
+          <img src={src} className={className} style={style} {...attributes} />
+        )
+      }
+    }
   }
 
   /**
@@ -167,22 +145,22 @@ class Images extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
    * On clicking the image button, prompt for an image and insert it.
    *
-   * @param {Event} e
+   * @param {Event} event
    */
 
-  onClickImage = (e) => {
-    e.preventDefault()
+  onClickImage = (event) => {
+    event.preventDefault()
     const src = window.prompt('Enter the URL of the image:')
     if (!src) return
 
-    const change = this.state.state
+    const change = this.state.value
       .change()
       .call(insertImage, src)
 
@@ -192,71 +170,39 @@ class Images extends React.Component {
   /**
    * On drop, insert the image wherever it is dropped.
    *
-   * @param {Event} e
-   * @param {Object} data
+   * @param {Event} event
    * @param {Change} change
    * @param {Editor} editor
    */
 
-  onDrop = (e, data, change, editor) => {
-    switch (data.type) {
-      case 'files': return this.onDropOrPasteFiles(e, data, change, editor)
-    }
-  }
+  onDropOrPaste = (event, change, editor) => {
+    const target = getEventRange(event, change.value)
+    if (!target && event.type == 'drop') return
 
-  /**
-   * On drop or paste files, read and insert the image files.
-   *
-   * @param {Event} e
-   * @param {Object} data
-   * @param {Change} change
-   * @param {Editor} editor
-   */
+    const transfer = getEventTransfer(event)
+    const { type, text, files } = transfer
 
-  onDropOrPasteFiles = (e, data, change, editor) => {
-    for (const file of data.files) {
-      const reader = new FileReader()
-      const [ type ] = file.type.split('/')
-      if (type != 'image') continue
+    if (type == 'files') {
+      for (const file of files) {
+        const reader = new FileReader()
+        const [ mime ] = file.type.split('/')
+        if (mime != 'image') continue
 
-      reader.addEventListener('load', () => {
-        editor.change((t) => {
-          t.call(insertImage, reader.result, data.target)
+        reader.addEventListener('load', () => {
+          editor.change((c) => {
+            c.call(insertImage, reader.result, target)
+          })
         })
-      })
 
-      reader.readAsDataURL(file)
+        reader.readAsDataURL(file)
+      }
     }
-  }
 
-  /**
-   * On paste, if the pasted content is an image URL, insert it.
-   *
-   * @param {Event} e
-   * @param {Object} data
-   * @param {Change} change
-   * @param {Editor} editor
-   */
-
-  onPaste = (e, data, change, editor) => {
-    switch (data.type) {
-      case 'files': return this.onDropOrPasteFiles(e, data, change, editor)
-      case 'text': return this.onPasteText(e, data, change)
+    if (type == 'text') {
+      if (!isUrl(text)) return
+      if (!isImage(text)) return
+      change.call(insertImage, text, target)
     }
-  }
-
-  /**
-   * On paste text, if the pasted content is an image URL, insert it.
-   *
-   * @param {Event} e
-   * @param {Object} data
-   * @param {Change} change
-   */
-
-  onPasteText = (e, data, change) => {
-    if (!isUrl(data.text)) return
-    if (!isImage(data.text)) return
-    change.call(insertImage, data.text, data.target)
   }
 
 }

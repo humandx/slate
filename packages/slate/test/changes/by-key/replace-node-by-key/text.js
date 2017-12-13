@@ -3,11 +3,11 @@
 import h from '../../../helpers/h'
 
 export default function (change) {
-  change.replaceNodeByKey('a', { kind: 'text', ranges: [{ text: 'three' }] })
+  change.replaceNodeByKey('a', { kind: 'text', leaves: [{ text: 'three' }] })
 }
 
 export const input = (
-  <state>
+  <value>
     <document>
       <paragraph>
         one
@@ -16,11 +16,11 @@ export const input = (
         <text key="a">one</text>
     </paragraph>
     </document>
-  </state>
+  </value>
 )
 
 export const output = (
-  <state>
+  <value>
     <document>
       <paragraph>
         one
@@ -29,5 +29,5 @@ export const output = (
         three
       </paragraph>
     </document>
-  </state>
+  </value>
 )

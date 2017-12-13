@@ -1,13 +1,13 @@
 
 import direction from 'direction'
 import isPlainObject from 'is-plain-object'
-import logger from 'slate-dev-logger'
 import { List, OrderedSet, Set } from 'immutable'
 
 import Block from './block'
 import Data from './data'
 import Document from './document'
 import Inline from './inline'
+import Range from './range'
 import Text from './text'
 import generateKey from '../utils/generate-key'
 import isIndexInRange from '../utils/is-index-in-range'
@@ -126,30 +126,30 @@ class Node {
   static fromJS = Node.fromJSON
 
   /**
-   * Check if a `value` is a `Node`.
+   * Check if `any` is a `Node`.
    *
-   * @param {Any} value
+   * @param {Any} any
    * @return {Boolean}
    */
 
-  static isNode(value) {
+  static isNode(any) {
     return (
-      Block.isBlock(value) ||
-      Document.isDocument(value) ||
-      Inline.isInline(value) ||
-      Text.isText(value)
+      Block.isBlock(any) ||
+      Document.isDocument(any) ||
+      Inline.isInline(any) ||
+      Text.isText(any)
     )
   }
 
   /**
-   * Check if a `value` is a list of nodes.
+   * Check if `any` is a list of nodes.
    *
-   * @param {Any} value
+   * @param {Any} any
    * @return {Boolean}
    */
 
-  static isNodeList(value) {
-    return List.isList(value) && value.every(item => Node.isNode(item))
+  static isNodeList(any) {
+    return List.isList(any) && any.every(item => Node.isNode(item))
   }
 
   /**
@@ -162,22 +162,15 @@ class Node {
    */
 
   areDescendantsSorted(first, second) {
-    first = normalizeKey(first)
-    second = normalizeKey(second)
+    first = assertKey(first)
+    second = assertKey(second)
 
-    let sorted
+    const keys = this.getKeysAsArray()
+    const firstIndex = keys.indexOf(first)
+    const secondIndex = keys.indexOf(second)
+    if (firstIndex == -1 || secondIndex == -1) return null
 
-    this.forEachDescendant((n) => {
-      if (n.key === first) {
-        sorted = true
-        return false
-      } else if (n.key === second) {
-        sorted = false
-        return false
-      }
-    })
-
-    return sorted
+    return firstIndex < secondIndex
   }
 
   /**
@@ -191,7 +184,7 @@ class Node {
     const child = this.getChild(key)
 
     if (!child) {
-      key = normalizeKey(key)
+      key = assertKey(key)
       throw new Error(`Could not find a child node with key "${key}".`)
     }
 
@@ -209,7 +202,7 @@ class Node {
     const descendant = this.getDescendant(key)
 
     if (!descendant) {
-      key = normalizeKey(key)
+      key = assertKey(key)
       throw new Error(`Could not find a descendant node with key "${key}".`)
     }
 
@@ -227,7 +220,7 @@ class Node {
     const node = this.getNode(key)
 
     if (!node) {
-      key = normalizeKey(key)
+      key = assertKey(key)
       throw new Error(`Could not find a node with key "${key}".`)
     }
 
@@ -321,7 +314,7 @@ class Node {
    */
 
   getAncestors(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
 
     if (key == this.key) return List()
     if (this.hasChild(key)) return List([this])
@@ -369,7 +362,7 @@ class Node {
   /**
    * Get the leaf block descendants in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {List<Node>}
    */
 
@@ -382,7 +375,7 @@ class Node {
   /**
    * Get the leaf block descendants in a `range` as an array
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Array}
    */
 
@@ -464,7 +457,7 @@ class Node {
   /**
    * Get a list of the characters in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {List<Character>}
    */
 
@@ -476,7 +469,7 @@ class Node {
   /**
    * Get a list of the characters in a `range` as an array.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Array}
    */
 
@@ -503,7 +496,7 @@ class Node {
    */
 
   getChild(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     return this.nodes.find(node => node.key == key)
   }
 
@@ -516,7 +509,7 @@ class Node {
    */
 
   getClosest(key, iterator) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     const ancestors = this.getAncestors(key)
     if (!ancestors) {
       throw new Error(`Could not find a descendant node with key "${key}".`)
@@ -568,8 +561,8 @@ class Node {
    */
 
   getCommonAncestor(one, two) {
-    one = normalizeKey(one)
-    two = normalizeKey(two)
+    one = assertKey(one)
+    two = assertKey(two)
 
     if (one == this.key) return this
     if (two == this.key) return this
@@ -592,25 +585,16 @@ class Node {
   }
 
   /**
-   * Get the component for the node from a `schema`.
+   * Get the decorations for the node from a `stack`.
    *
-   * @param {Schema} schema
-   * @return {Component|Void}
+   * @param {Stack} stack
+   * @return {List}
    */
 
-  getComponent(schema) {
-    return schema.__getComponent(this)
-  }
-
-  /**
-   * Get the decorations for the node from a `schema`.
-   *
-   * @param {Schema} schema
-   * @return {Array}
-   */
-
-  getDecorators(schema) {
-    return schema.__getDecorators(this)
+  getDecorations(stack) {
+    const decorations = stack.find('decorateNode', this)
+    const list = Range.createList(decorations || [])
+    return list
   }
 
   /**
@@ -637,7 +621,7 @@ class Node {
    */
 
   getDescendant(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     let descendantFound = null
 
     const found = this.nodes.find((node) => {
@@ -664,40 +648,13 @@ class Node {
   getDescendantAtPath(path) {
     let descendant = this
 
-    for (let i = 0; i < path.length; i++) {
-      const index = path[i]
+    for (const index of path) {
       if (!descendant) return
       if (!descendant.nodes) return
       descendant = descendant.nodes.get(index)
     }
 
     return descendant
-  }
-
-  /**
-   * Get the decorators for a descendant by `key` given a `schema`.
-   *
-   * @param {String} key
-   * @param {Schema} schema
-   * @return {Array}
-   */
-
-  getDescendantDecorators(key, schema) {
-    if (!schema.hasDecorators) {
-      return []
-    }
-
-    const descendant = this.assertDescendant(key)
-    let child = this.getFurthestAncestor(key)
-    let decorators = []
-
-    while (child != descendant) {
-      decorators = decorators.concat(child.getDecorators(schema))
-      child = child.getFurthestAncestor(key)
-    }
-
-    decorators = decorators.concat(descendant.getDecorators(schema))
-    return decorators
   }
 
   /**
@@ -721,7 +678,7 @@ class Node {
   /**
    * Get a fragment of the node at a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Document}
    */
 
@@ -793,7 +750,7 @@ class Node {
   getFurthest(key, iterator) {
     const ancestors = this.getAncestors(key)
     if (!ancestors) {
-      key = normalizeKey(key)
+      key = assertKey(key)
       throw new Error(`Could not find a descendant node with key "${key}".`)
     }
 
@@ -831,7 +788,7 @@ class Node {
    */
 
   getFurthestAncestor(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     return this.nodes.find((node) => {
       if (node.key == key) return true
       if (node.kind == 'text') return false
@@ -850,7 +807,7 @@ class Node {
     const ancestors = this.getAncestors(key)
 
     if (!ancestors) {
-      key = normalizeKey(key)
+      key = assertKey(key)
       throw new Error(`Could not find a descendant node with key "${key}".`)
     }
 
@@ -898,7 +855,7 @@ class Node {
   /**
    * Get the closest inline nodes for each text node in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {List<Node>}
    */
 
@@ -911,7 +868,7 @@ class Node {
   /**
    * Get the closest inline nodes for each text node in a `range` as an array.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Array}
    */
 
@@ -958,18 +915,29 @@ class Node {
   }
 
   /**
-   * Return a set of all keys in the node.
+   * Return a set of all keys in the node as an array.
    *
-   * @return {Set<String>}
+   * @return {Array<String>}
    */
 
-  getKeys() {
+  getKeysAsArray() {
     const keys = []
 
     this.forEachDescendant((desc) => {
       keys.push(desc.key)
     })
 
+    return keys
+  }
+
+  /**
+   * Return a set of all keys in the node.
+   *
+   * @return {Set<String>}
+   */
+
+  getKeys() {
+    const keys = this.getKeysAsArray()
     return new Set(keys)
   }
 
@@ -1028,7 +996,7 @@ class Node {
   /**
    * Get a set of the marks in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Set<Mark>}
    */
 
@@ -1040,7 +1008,7 @@ class Node {
   /**
    * Get a set of the marks in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {OrderedSet<Mark>}
    */
 
@@ -1052,7 +1020,7 @@ class Node {
   /**
    * Get a set of the active marks in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Set<Mark>}
    */
 
@@ -1064,7 +1032,7 @@ class Node {
   /**
    * Get a set of the marks in a `range`, by unioning.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Array}
    */
 
@@ -1101,7 +1069,7 @@ class Node {
   /**
    * Get a set of marks in a `range`, by intersecting.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Array}
    */
 
@@ -1114,8 +1082,8 @@ class Node {
     // If the range is collapsed at the start of the node, check the previous.
     if (range.isCollapsed && startOffset == 0) {
       const previous = this.getPreviousText(startKey)
-      if (!previous || !previous.length) return []
-      const char = previous.characters.get(previous.length - 1)
+      if (!previous || previous.text.length == 0) return []
+      const char = previous.characters.get(previous.text.length - 1)
       return char.marks.toArray()
     }
 
@@ -1212,7 +1180,7 @@ class Node {
    */
 
   getNextSibling(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
 
     const parent = this.getParent(key)
     const after = parent.nodes
@@ -1232,7 +1200,7 @@ class Node {
    */
 
   getNextText(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     return this.getTexts()
       .skipUntil(text => text.key == key)
       .get(1)
@@ -1246,7 +1214,7 @@ class Node {
    */
 
   getNode(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     return this.key == key ? this : this.getDescendant(key)
   }
 
@@ -1286,7 +1254,7 @@ class Node {
   /**
    * Get the offset from a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Number}
    */
 
@@ -1351,6 +1319,17 @@ class Node {
   }
 
   /**
+   * Get the placeholder for the node from a `schema`.
+   *
+   * @param {Schema} schema
+   * @return {Component|Void}
+   */
+
+  getPlaceholder(schema) {
+    return schema.__getPlaceholder(this)
+  }
+
+  /**
    * Get the block node before a descendant text node by `key`.
    *
    * @param {String} key
@@ -1382,7 +1361,7 @@ class Node {
    */
 
   getPreviousSibling(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     const parent = this.getParent(key)
     const before = parent.nodes
       .takeUntil(child => child.key == key)
@@ -1402,7 +1381,7 @@ class Node {
    */
 
   getPreviousText(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
     return this.getTexts()
       .takeUntil(text => text.key == key)
       .last()
@@ -1413,7 +1392,7 @@ class Node {
    * whether the node `isSelected`, to determine whether not finding matches
    * means everything is selected or nothing is.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @param {Boolean} isSelected
    * @return {Object|Null}
    */
@@ -1423,6 +1402,11 @@ class Node {
 
     // PERF: if we're not selected, or the range is blurred, we can exit early.
     if (!isSelected || range.isBlurred) {
+      return null
+    }
+
+    // if we've been given an invalid selection we can exit early.
+    if (range.isUnset) {
       return null
     }
 
@@ -1448,7 +1432,7 @@ class Node {
       }
 
       // PERF: exit early if both start and end have been found.
-      return start != null && end != null
+      return start == null || end == null
     })
 
     if (isSelected && start == null) start = 0
@@ -1536,7 +1520,7 @@ class Node {
   /**
    * Get all of the text nodes in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {List<Node>}
    */
 
@@ -1548,7 +1532,7 @@ class Node {
   /**
    * Get all of the text nodes in a `range` as an array.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Array}
    */
 
@@ -1644,7 +1628,7 @@ class Node {
   /**
    * Check whether the node is in a `range`.
    *
-   * @param {Selection} range
+   * @param {Range} range
    * @return {Boolean}
    */
 
@@ -1809,7 +1793,7 @@ class Node {
    */
 
   removeDescendant(key) {
-    key = normalizeKey(key)
+    key = assertKey(key)
 
     let node = this
     let parent = node.getParent(key)
@@ -1905,188 +1889,25 @@ class Node {
    * Validate the node against a `schema`.
    *
    * @param {Schema} schema
-   * @return {Object|Null}
+   * @return {Function|Null}
    */
 
   validate(schema) {
-    return schema.__validate(this)
-  }
-
-  /**
-   * True if the node has both descendants in that order, false otherwise. The
-   * order is depth-first, post-order.
-   *
-   * @param {String} first
-   * @param {String} second
-   * @return {Boolean}
-   */
-
-  areDescendantSorted(first, second) {
-    logger.deprecate('0.19.0', 'The Node.areDescendantSorted(first, second) method is deprecated, please use `Node.areDescendantsSorted(first, second) instead.')
-    return this.areDescendantsSorted(first, second)
-  }
-
-  /**
-   * Concat children `nodes` on to the end of the node.
-   *
-   * @param {List<Node>} nodes
-   * @return {Node}
-   */
-
-  concatChildren(nodes) {
-    logger.deprecate('0.19.0', 'The `Node.concatChildren(nodes)` method is deprecated.')
-    nodes = this.nodes.concat(nodes)
-    return this.set('nodes', nodes)
-  }
-
-  /**
-   * Decorate all of the text nodes with a `decorator` function.
-   *
-   * @param {Function} decorator
-   * @return {Node}
-   */
-
-  decorateTexts(decorator) {
-    logger.deprecate('0.19.0', 'The `Node.decorateTexts(decorator) method is deprecated.')
-    return this.mapDescendants((child) => {
-      return child.kind == 'text'
-        ? child.decorateCharacters(decorator)
-        : child
-    })
-  }
-
-  /**
-   * Recursively filter all descendant nodes with `iterator`, depth-first.
-   * It is different from `filterDescendants` in regard of the order of results.
-   *
-   * @param {Function} iterator
-   * @return {List<Node>}
-   */
-
-  filterDescendantsDeep(iterator) {
-    logger.deprecate('0.19.0', 'The Node.filterDescendantsDeep(iterator) method is deprecated.')
-    return this.nodes.reduce((matches, child, i, nodes) => {
-      if (child.kind != 'text') matches = matches.concat(child.filterDescendantsDeep(iterator))
-      if (iterator(child, i, nodes)) matches = matches.push(child)
-      return matches
-    }, new List())
-  }
-
-  /**
-   * Recursively find all descendant nodes by `iterator`. Depth first.
-   *
-   * @param {Function} iterator
-   * @return {Node|Null}
-   */
-
-  findDescendantDeep(iterator) {
-    logger.deprecate('0.19.0', 'The Node.findDescendantDeep(iterator) method is deprecated.')
-    let found
-
-    this.forEachDescendant((node) => {
-      if (iterator(node)) {
-        found = node
-        return false
-      }
-    })
-
-    return found
-  }
-
-  /**
-   * Get children between two child keys.
-   *
-   * @param {String} start
-   * @param {String} end
-   * @return {Node}
-   */
-
-  getChildrenBetween(start, end) {
-    logger.deprecate('0.19.0', 'The `Node.getChildrenBetween(start, end)` method is deprecated.')
-    start = this.assertChild(start)
-    start = this.nodes.indexOf(start)
-    end = this.assertChild(end)
-    end = this.nodes.indexOf(end)
-    return this.nodes.slice(start + 1, end)
-  }
-
-  /**
-   * Get children between two child keys, including the two children.
-   *
-   * @param {String} start
-   * @param {String} end
-   * @return {Node}
-   */
-
-  getChildrenBetweenIncluding(start, end) {
-    logger.deprecate('0.19.0', 'The `Node.getChildrenBetweenIncluding(start, end)` method is deprecated.')
-    start = this.assertChild(start)
-    start = this.nodes.indexOf(start)
-    end = this.assertChild(end)
-    end = this.nodes.indexOf(end)
-    return this.nodes.slice(start, end + 1)
-  }
-
-  /**
-   * Get the highest child ancestor of a node by `key`.
-   *
-   * @param {String} key
-   * @return {Node|Null}
-   */
-
-  getHighestChild(key) {
-    logger.deprecate('0.19.0', 'The `Node.getHighestChild(key) method is deprecated, please use `Node.getFurthestAncestor(key) instead.')
-    return this.getFurthestAncestor(key)
-  }
-
-  /**
-   * Get the highest parent of a node by `key` which has an only child.
-   *
-   * @param {String} key
-   * @return {Node|Null}
-   */
-
-  getHighestOnlyChildParent(key) {
-    logger.deprecate('0.19.0', 'The `Node.getHighestOnlyChildParent(key)` method is deprecated, please use `Node.getFurthestOnlyChildAncestor` instead.')
-    return this.getFurthestOnlyChildAncestor(key)
-  }
-
-  /**
-   * Check if the inline nodes are split at a `range`.
-   *
-   * @param {Selection} range
-   * @return {Boolean}
-   */
-
-  isInlineSplitAtRange(range) {
-    logger.deprecate('0.19.0', 'The `Node.isInlineSplitAtRange(range)` method is deprecated.')
-    range = range.normalize(this)
-    if (range.isExpanded) throw new Error()
-
-    const { startKey } = range
-    const start = this.getFurthestInline(startKey) || this.getDescendant(startKey)
-    return range.isAtStartOf(start) || range.isAtEndOf(start)
+    return schema.validateNode(this)
   }
 
 }
 
 /**
- * Normalize a key argument `value`.
+ * Assert a key `arg`.
  *
- * @param {String|Node} value
+ * @param {String} arg
  * @return {String}
  */
 
-function normalizeKey(value) {
-  if (typeof value == 'string') return value
-
-  logger.deprecate('0.14.0', 'An object was passed to a Node method instead of a `key` string. This was previously supported, but is being deprecated because it can have a negative impact on performance. The object in question was:', value)
-
-  if (Node.isNode(value)) {
-    return value.key
-  }
-
-  throw new Error(`Invalid \`key\` argument! It must be either a block, an inline, a text, or a string. You passed: ${value}`)
+function assertKey(arg) {
+  if (typeof arg == 'string') return arg
+  throw new Error(`Invalid \`key\` argument! It must be a key string, but you passed: ${arg}`)
 }
 
 /**
@@ -2102,6 +1923,7 @@ memoize(Node.prototype, [
   'getInlines',
   'getInlinesAsArray',
   'getKeys',
+  'getKeysAsArray',
   'getLastText',
   'getMarks',
   'getOrderedMarks',
@@ -2128,18 +1950,14 @@ memoize(Node.prototype, [
   'getCharactersAtRange',
   'getCharactersAtRangeAsArray',
   'getChild',
-  'getChildrenBetween',
-  'getChildrenBetweenIncluding',
   'getClosestBlock',
   'getClosestInline',
   'getClosestVoid',
   'getCommonAncestor',
-  'getComponent',
-  'getDecorators',
+  'getDecorations',
   'getDepth',
   'getDescendant',
   'getDescendantAtPath',
-  'getDescendantDecorators',
   'getFragmentAtRange',
   'getFurthestBlock',
   'getFurthestInline',
@@ -2164,6 +1982,7 @@ memoize(Node.prototype, [
   'getOffsetAtRange',
   'getParent',
   'getPath',
+  'getPlaceholder',
   'getPreviousBlock',
   'getPreviousSibling',
   'getPreviousText',
@@ -2174,7 +1993,6 @@ memoize(Node.prototype, [
   'hasDescendant',
   'hasNode',
   'hasVoidParent',
-  'isInlineSplitAtRange',
   'validate',
 ], {
   takesArguments: true

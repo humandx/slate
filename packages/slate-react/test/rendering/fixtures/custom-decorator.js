@@ -1,45 +1,50 @@
 /** @jsx h */
 
+import React from 'react'
 import h from '../../helpers/h'
-import { Mark } from 'slate'
 
-export const schema = {
-  nodes: {
-    paragraph: {
-      decorate(text, block) {
-        let { characters } = text
-        let second = characters.get(1)
-        const mark = Mark.create({ type: 'bold' })
-        const marks = second.marks.add(mark)
-        second = second.merge({ marks })
-        characters = characters.set(1, second)
-        return characters
-      }
-    }
-  },
-  marks: {
-    bold: {
-      fontWeight: 'bold',
-    }
+function decorateNode(block) {
+  const text = block.getFirstText()
+  return [{
+    anchorKey: text.key,
+    anchorOffset: 1,
+    focusKey: text.key,
+    focusOffset: 2,
+    marks: [{ type: 'bold' }]
+  }]
+}
+
+function Bold(props) {
+  return React.createElement('strong', null, props.children)
+}
+
+function renderMark(props) {
+  switch (props.mark.type) {
+    case 'bold': return Bold(props)
   }
 }
 
-export const state = (
-  <state>
+export const props = {
+  decorateNode,
+  renderMark,
+}
+
+export const value = (
+  <value>
     <document>
       <paragraph>
         one
       </paragraph>
     </document>
-  </state>
+  </value>
 )
 
 export const output = `
 <div data-slate-editor="true" contenteditable="true" role="textbox">
-  <div style="position:relative;">
+  <div style="position:relative">
     <span>
       <span>o</span>
-      <span><span style="font-weight:bold;">n</span></span>
+      <span><strong>n</strong></span>
       <span>e</span>
     </span>
   </div>

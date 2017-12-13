@@ -13,7 +13,12 @@ A short-lived, unique identifier for the node.
 
 By default, keys are **not** meant to be long-lived unique identifiers for nodes that you might store in a database, or elsewhere. They are meant purely to identify a node inside of a single Slate instance. For that reason, they are simply auto-incrementing strings. (eg. `'0'`, `'1'`, `'2'`, ...) 
 
-If you want to make your keys uniqueness long-lived, you'll need to supply your own key generating function via the [`setKeyGenerator`](../utils/utils.md#setkeygenerator) util.
+If you want to make your keys uniqueness long-lived, you'll need to supply your own key generating function via the [`setKeyGenerator`](./utils.md#setkeygenerator) util.
+
+### `kind`
+`String`
+
+An immutable string value of `'document'`, `'block'`, `'inline'` or `'text'` for easily separating this node from [`Inline`](./inline.md) or [`Text`](./text.md) nodes.
 
 ### `nodes`
 `Immutable.List`
@@ -22,11 +27,6 @@ A list of child nodes. Defaults to a list with a single text node child.
 
 
 ## Computed Properties
-
-### `kind`
-`String`
-
-An immutable string value of `'block'` for easily separating this node from [`Inline`](./inline.md) or [`Text`](./text.md) nodes.
 
 ### `text`
 `String`
@@ -47,7 +47,7 @@ Deeply filter the descendant nodes of a node by `iterator`.
 Deeply find a descendant node by `iterator`.
 
 ### `getBlocksAtRange`
-`getBlocksAtRange(range: Selection) => List`
+`getBlocksAtRange(range: Range) => List`
 
 Get all of the bottom-most [`Block`](./block.md) nodes in a `range`.
 
@@ -57,7 +57,7 @@ Get all of the bottom-most [`Block`](./block.md) nodes in a `range`.
 Get all of the bottom-most [`Block`](./block.md) node descendants.
 
 ### `getCharactersAtRange`
-`getCharactersAtRange(range: Selection) => List`
+`getCharactersAtRange(range: Range) => List`
 
 Get a list of all of the [`Characters`](./character.md) in a `range`.
 
@@ -97,7 +97,7 @@ Get a descendant node by `key`.
 Get the first child text node inside a node.
 
 ### `getFragmentAtRange`
-`getFragmentAtRange(range: Selection) => Document`
+`getFragmentAtRange(range: Range) => Document`
 
 Get a document fragment of the nodes in a `range`.
 
@@ -127,7 +127,7 @@ Get the furthest inline parent of a node by `key`.
 Get the furthest ancestor of a node by `key` that has only one child.
 
 ### `getInlinesAtRange`
-`getInlinesAtRange(range: Selection) => List`
+`getInlinesAtRange(range: Range) => List`
 
 Get all of the top-most [`Inline`](./inline.md) nodes in a `range`.
 
@@ -137,7 +137,7 @@ Get all of the top-most [`Inline`](./inline.md) nodes in a `range`.
 Get the last child text node inside a node.
 
 ### `getMarksAtRange`
-`getMarksAtRange(range: Selection) => Set`
+`getMarksAtRange(range: Range) => Set`
 
 Get a set of all of the marks in a `range`.
 
@@ -182,7 +182,7 @@ Get the previous [`Text`](./text.md) node before a descendant by `key`.
 Get the [`Text`](./text.md) node at an `offset`.
 
 ### `getTextsAtRange`
-`getTextsAtRange(range: Selection) => List`
+`getTextsAtRange(range: Range) => List`
 
 Get all of the [`Text`](./text.md) nodes in a `range`.
 

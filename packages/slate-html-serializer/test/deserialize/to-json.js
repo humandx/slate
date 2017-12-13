@@ -22,7 +22,7 @@ export const input = `
 `.trim()
 
 export const output = {
-  kind: 'state',
+  kind: 'value',
   document: {
     kind: 'document',
     data: {},
@@ -33,8 +33,9 @@ export const output = {
         nodes: [
           {
             kind: 'text',
-            ranges: [
+            leaves: [
               {
+                kind: 'leaf',
                 text: 'one',
               }
             ]

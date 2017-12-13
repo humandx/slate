@@ -1,31 +1,31 @@
 /** @jsx h */
 
 import h from '../../../helpers/h'
-import { Selection } from 'slate'
+import { Range } from 'slate'
 
 export default function (simulator) {
-  const { state } = simulator
-  const text = state.document.getTexts().first()
-  const selection = Selection.create().collapseToStartOf(text).move(1).focus()
+  const { value } = simulator
+  const text = value.document.getTexts().first()
+  const selection = Range.create().collapseToStartOf(text).move(1).focus()
   simulator.select(null, { selection })
 }
 
 export const input = (
-  <state>
+  <value>
     <document>
       <paragraph>
         <cursor />word
       </paragraph>
     </document>
-  </state>
+  </value>
 )
 
 export const output = (
-  <state>
+  <value>
     <document>
       <paragraph>
         w<cursor />ord
       </paragraph>
     </document>
-  </state>
+  </value>
 )

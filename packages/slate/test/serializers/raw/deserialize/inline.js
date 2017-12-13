@@ -3,7 +3,7 @@
 import h from '../../../helpers/h'
 
 export const input = {
-  kind: 'state',
+  kind: 'value',
   document: {
     kind: 'document',
     data: {},
@@ -16,9 +16,9 @@ export const input = {
         nodes: [
           {
             kind: 'text',
-            ranges: [
+            leaves: [
               {
-                kind: 'range',
+                kind: 'leaf',
                 text: '',
                 marks: [],
               }
@@ -32,9 +32,9 @@ export const input = {
             nodes: [
               {
                 kind: 'text',
-                ranges: [
+                leaves: [
                   {
-                    kind: 'range',
+                    kind: 'leaf',
                     text: 'one',
                     marks: [],
                   }
@@ -44,9 +44,9 @@ export const input = {
           },
           {
             kind: 'text',
-            ranges: [
+            leaves: [
               {
-                kind: 'range',
+                kind: 'leaf',
                 text: '',
                 marks: [],
               }
@@ -59,7 +59,7 @@ export const input = {
 }
 
 export const output = (
-  <state>
+  <value>
     <document>
       <paragraph>
         <link>
@@ -67,5 +67,5 @@ export const output = (
         </link>
       </paragraph>
     </document>
-  </state>
+  </value>
 )

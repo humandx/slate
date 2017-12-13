@@ -1,38 +1,8 @@
 
-import Debug from 'debug'
 import { Record } from 'immutable'
 
 import MODEL_TYPES from '../constants/model-types'
-import Schema from './schema'
-
-/**
- * Debug.
- *
- * @type {Function}
- */
-
-const debug = Debug('slate:stack')
-
-/**
- * Methods that are triggered on events and can change the state.
- *
- * @type {Array}
- */
-
-const METHODS = [
-  'onBeforeInput',
-  'onBeforeChange',
-  'onBlur',
-  'onCopy',
-  'onCut',
-  'onDrop',
-  'onFocus',
-  'onKeyDown',
-  'onKeyUp',
-  'onPaste',
-  'onSelect',
-  'onChange',
-]
+import memoize from '../utils/memoize'
 
 /**
  * Default properties.
@@ -42,7 +12,6 @@ const METHODS = [
 
 const DEFAULTS = {
   plugins: [],
-  schema: new Schema(),
 }
 
 /**
@@ -57,27 +26,23 @@ class Stack extends Record(DEFAULTS) {
    * Constructor.
    *
    * @param {Object} attrs
-   *   @property {Array} plugins
-   *   @property {Schema|Object} schema
-   *   @property {Function} ...handlers
    */
 
   static create(attrs = {}) {
-    const { plugins } = attrs
-    const schema = resolveSchema(plugins)
-    const stack = new Stack({ plugins, schema })
+    const { plugins = [] } = attrs
+    const stack = new Stack({ plugins })
     return stack
   }
 
   /**
-   * Check if a `value` is a `Stack`.
+   * Check if `any` is a `Stack`.
    *
-   * @param {Any} value
+   * @param {Any} any
    * @return {Boolean}
    */
 
-  static isStack(value) {
-    return !!(value && value[MODEL_TYPES.STACK])
+  static isStack(any) {
+    return !!(any && any[MODEL_TYPES.STACK])
   }
 
   /**
@@ -91,51 +56,87 @@ class Stack extends Record(DEFAULTS) {
   }
 
   /**
-   * Invoke `render` on all of the plugins in reverse, building up a tree of
-   * higher-order components.
+   * Get all plugins with `property`.
    *
-   * @param {State} state
-   * @param {Editor} editor
-   * @param {Object} children
-   * @param {Object} props
-   * @return {Component}
-   */
-
-  render(state, editor, props) {
-    debug('render')
-    const plugins = this.plugins.slice().reverse()
-    let children
-
-    for (let i = 0; i < plugins.length; i++) {
-      const plugin = plugins[i]
-      if (!plugin.render) continue
-      children = plugin.render(props, state, editor)
-      props.children = children
-    }
-
-    return children
-  }
-
-  /**
-   * Invoke `renderPortal` on all of the plugins, building a list of portals.
-   *
-   * @param {State} state
-   * @param {Editor} editor
+   * @param {String} property
    * @return {Array}
    */
 
-  renderPortal(state, editor) {
-    debug('renderPortal')
-    const portals = []
+  getPluginsWith(property) {
+    return this.plugins.filter(plugin => plugin[property] != null)
+  }
 
-    for (let i = 0; i < this.plugins.length; i++) {
-      const plugin = this.plugins[i]
-      if (!plugin.renderPortal) continue
-      const portal = plugin.renderPortal(state, editor)
-      if (portal) portals.push(portal)
+  /**
+   * Iterate the plugins with `property`, returning the first non-null value.
+   *
+   * @param {String} property
+   * @param {Any} ...args
+   */
+
+  find(property, ...args) {
+    const plugins = this.getPluginsWith(property)
+
+    for (const plugin of plugins) {
+      const ret = plugin[property](...args)
+      if (ret != null) return ret
+    }
+  }
+
+  /**
+   * Iterate the plugins with `property`, returning all the non-null values.
+   *
+   * @param {String} property
+   * @param {Any} ...args
+   * @return {Array}
+   */
+
+  map(property, ...args) {
+    const plugins = this.getPluginsWith(property)
+    const array = []
+
+    for (const plugin of plugins) {
+      const ret = plugin[property](...args)
+      if (ret != null) array.push(ret)
     }
 
-    return portals
+    return array
+  }
+
+  /**
+   * Iterate the plugins with `property`, breaking on any a non-null values.
+   *
+   * @param {String} property
+   * @param {Any} ...args
+   */
+
+  run(property, ...args) {
+    const plugins = this.getPluginsWith(property)
+
+    for (const plugin of plugins) {
+      const ret = plugin[property](...args)
+      if (ret != null) return
+    }
+  }
+
+  /**
+   * Iterate the plugins with `property`, reducing to a set of React children.
+   *
+   * @param {String} property
+   * @param {Object} props
+   * @param {Any} ...args
+   */
+
+  render(property, props, ...args) {
+    const plugins = this.getPluginsWith(property).slice().reverse()
+    let { children = null } = props
+
+    for (const plugin of plugins) {
+      const ret = plugin[property](props, ...args)
+      if (ret == null) continue
+      props.children = children = ret
+    }
+
+    return children
   }
 
 }
@@ -147,47 +148,14 @@ class Stack extends Record(DEFAULTS) {
 Stack.prototype[MODEL_TYPES.STACK] = true
 
 /**
- * Mix in the stack methods.
- *
- * @param {Change} change
- * @param {Editor} editor
- * @param {Mixed} ...args
+ * Memoize read methods.
  */
 
-for (let i = 0; i < METHODS.length; i++) {
-  const method = METHODS[i]
-  Stack.prototype[method] = function (change, editor, ...args) {
-    debug(method)
-
-    for (let k = 0; k < this.plugins.length; k++) {
-      const plugin = this.plugins[k]
-      if (!plugin[method]) continue
-      const next = plugin[method](...args, change, editor)
-      if (next != null) break
-    }
-  }
-}
-
-/**
- * Resolve a schema from a set of `plugins`.
- *
- * @param {Array} plugins
- * @return {Schema}
- */
-
-function resolveSchema(plugins) {
-  let rules = []
-
-  for (let i = 0; i < plugins.length; i++) {
-    const plugin = plugins[i]
-    if (plugin.schema == null) continue
-    const schema = Schema.create(plugin.schema)
-    rules = rules.concat(schema.rules)
-  }
-
-  const schema = Schema.create({ rules })
-  return schema
-}
+memoize(Stack.prototype, [
+  'getPluginsWith',
+], {
+  takesArguments: true,
+})
 
 /**
  * Export.

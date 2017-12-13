@@ -1,13 +1,13 @@
 
 import { Editor } from 'slate-react'
-import { Mark, State } from 'slate'
+import { Value } from 'slate'
 
 import Prism from 'prismjs'
 import React from 'react'
-import initialState from './state.json'
+import initialValue from './value.json'
 
 /**
- * Define a code block component.
+ * Define our code components.
  *
  * @param {Object} props
  * @return {Element}
@@ -17,8 +17,8 @@ function CodeBlock(props) {
   const { editor, node } = props
   const language = node.data.get('language')
 
-  function onChange(e) {
-    editor.change(c => c.setNodeByKey(node.key, { data: { language: e.target.value }}))
+  function onChange(event) {
+    editor.change(c => c.setNodeByKey(node.key, { data: { language: event.target.value }}))
   }
 
   return (
@@ -40,69 +40,10 @@ function CodeBlock(props) {
   )
 }
 
-/**
- * Define a Prism.js decorator for code blocks.
- *
- * @param {Text} text
- * @param {Block} block
- */
-
-function codeBlockDecorator(text, block) {
-  const characters = text.characters.asMutable()
-  const language = block.data.get('language')
-  const string = text.text
-  const grammar = Prism.languages[language]
-  const tokens = Prism.tokenize(string, grammar)
-  let offset = 0
-
-  for (const token of tokens) {
-    if (typeof token == 'string') {
-      offset += token.length
-      continue
-    }
-
-    const length = offset + token.content.length
-    const type = `highlight-${token.type}`
-    const mark = Mark.create({ type })
-
-    for (let i = offset; i < length; i++) {
-      let char = characters.get(i)
-      let { marks } = char
-      marks = marks.add(mark)
-      char = char.set('marks', marks)
-      characters.set(i, char)
-    }
-
-    offset = length
-  }
-
-  return characters.asImmutable()
-}
-
-/**
- * Define a schema.
- *
- * @type {Object}
- */
-
-const schema = {
-  nodes: {
-    code: {
-      render: CodeBlock,
-      decorate: codeBlockDecorator,
-    }
-  },
-  marks: {
-    'highlight-comment': {
-      opacity: '0.33'
-    },
-    'highlight-keyword': {
-      fontWeight: 'bold'
-    },
-    'highlight-punctuation': {
-      opacity: '0.75'
-    }
-  }
+function CodeBlockLine(props) {
+  return (
+    <div {...props.attributes}>{props.children}</div>
+  )
 }
 
 /**
@@ -114,41 +55,41 @@ const schema = {
 class CodeHighlighting extends React.Component {
 
   /**
-   * Deserialize the raw initial state.
+   * Deserialize the raw initial value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState)
+    value: Value.fromJSON(initialValue)
   }
 
   /**
-   * On change, save the new state.
+   * On change, save the new value.
    *
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
    * On key down inside code blocks, insert soft new lines.
    *
-   * @param {Event} e
-   * @param {Object} data
+   * @param {Event} event
    * @param {Change} change
    * @return {Change}
    */
 
-  onKeyDown = (e, data, change) => {
-    const { state } = change
-    const { startBlock } = state
-    if (data.key != 'enter') return
+  onKeyDown = (event, change) => {
+    const { value } = change
+    const { startBlock } = value
+    if (event.key != 'Enter') return
     if (startBlock.type != 'code') return
-    if (state.isExpanded) change.delete()
-    return change.insertText('\n')
+    if (value.isExpanded) change.delete()
+    change.insertText('\n')
+    return true
   }
 
   /**
@@ -157,17 +98,111 @@ class CodeHighlighting extends React.Component {
    * @return {Component}
    */
 
-  render() {
+  render = () => {
     return (
       <div className="editor">
         <Editor
-          schema={schema}
-          state={this.state.state}
-          onKeyDown={this.onKeyDown}
+          placeholder="Write some code..."
+          value={this.state.value}
           onChange={this.onChange}
+          onKeyDown={this.onKeyDown}
+          renderNode={this.renderNode}
+          renderMark={this.renderMark}
+          decorateNode={this.decorateNode}
         />
       </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    switch (props.node.type) {
+      case 'code': return <CodeBlock {...props} />
+      case 'code_line': return <CodeBlockLine {...props} />
+    }
+  }
+
+  /**
+   * Render a Slate mark.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderMark = (props) => {
+    const { children, mark } = props
+    switch (mark.type) {
+      case 'comment': return <span style={{ opacity: '0.33' }}>{children}</span>
+      case 'keyword': return <span style={{ fontWeight: 'bold' }}>{children}</span>
+      case 'punctuation': return <span style={{ opacity: '0.75' }}>{children}</span>
+    }
+  }
+
+  /**
+   * Decorate code blocks with Prism.js highlighting.
+   *
+   * @param {Node} node
+   * @return {Array}
+   */
+
+  decorateNode = (node) => {
+    if (node.type != 'code') return
+
+    const language = node.data.get('language')
+    const texts = node.getTexts().toArray()
+    const string = texts.map(t => t.text).join('\n')
+    const grammar = Prism.languages[language]
+    const tokens = Prism.tokenize(string, grammar)
+    const decorations = []
+    let startText = texts.shift()
+    let endText = startText
+    let startOffset = 0
+    let endOffset = 0
+    let start = 0
+
+    for (const token of tokens) {
+      startText = endText
+      startOffset = endOffset
+
+      const content = typeof token == 'string' ? token : token.content
+      const newlines = content.split('\n').length - 1
+      const length = content.length - newlines
+      const end = start + length
+
+      let available = startText.text.length - startOffset
+      let remaining = length
+
+      endOffset = startOffset + remaining
+
+      while (available < remaining) {
+        endText = texts.shift()
+        remaining = length - available
+        available = endText.text.length
+        endOffset = remaining
+      }
+
+      if (typeof token != 'string') {
+        const range = {
+          anchorKey: startText.key,
+          anchorOffset: startOffset,
+          focusKey: endText.key,
+          focusOffset: endOffset,
+          marks: [{ type: token.type }],
+        }
+
+        decorations.push(range)
+      }
+
+      start = end
+    }
+
+    return decorations
   }
 
 }

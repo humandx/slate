@@ -1,21 +1,9 @@
 
 import { Editor } from 'slate-react'
-import { State } from 'slate'
+import { Value } from 'slate'
 
 import React from 'react'
-import initialState from './state.json'
-
-/**
- * Define a schema.
- *
- * @type {Object}
- */
-
-const schema = {
-  nodes: {
-    'block-quote': props => <blockquote {...props.attributes}>{props.children}</blockquote>,
-  }
-}
+import initialValue from './value.json'
 
 /**
  * The plain text example.
@@ -23,16 +11,16 @@ const schema = {
  * @type {Component}
  */
 
-class PlainText extends React.Component {
+class RTL extends React.Component {
 
   /**
-   * Deserialize the initial editor state.
+   * Deserialize the initial editor value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState)
+    value: Value.fromJSON(initialValue)
   }
 
   /**
@@ -41,21 +29,20 @@ class PlainText extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
    * On key down, if it's <shift-enter> add a soft break.
    *
-   * @param {Event} e
-   * @param {Object} data
+   * @param {Event} event
    * @param {Change} change
    */
 
-  onKeyDown = (e, data, change) => {
-    if (data.key == 'enter' && data.isShift) {
-      e.preventDefault()
+  onKeyDown = (event, change) => {
+    if (event.key == 'Enter' && event.shiftKey) {
+      event.preventDefault()
       change.insertText('\n')
       return true
     }
@@ -69,14 +56,30 @@ class PlainText extends React.Component {
 
   render() {
     return (
-      <Editor
-        placeholder={'Enter some plain text...'}
-        schema={schema}
-        state={this.state.state}
-        onChange={this.onChange}
-        onKeyDown={this.onKeyDown}
-      />
+      <div className="editor">
+        <Editor
+          placeholder="Enter some plain text..."
+          value={this.state.value}
+          onChange={this.onChange}
+          onKeyDown={this.onKeyDown}
+          renderNode={this.renderNode}
+        />
+      </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    const { attributes, children, node } = props
+    switch (node.type) {
+      case 'block-quote': return <blockquote {...attributes}>{children}</blockquote>
+    }
   }
 
 }
@@ -85,4 +88,4 @@ class PlainText extends React.Component {
  * Export.
  */
 
-export default PlainText
+export default RTL

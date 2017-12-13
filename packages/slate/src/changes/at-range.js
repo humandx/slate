@@ -6,7 +6,6 @@ import Inline from '../models/inline'
 import Mark from '../models/mark'
 import Node from '../models/node'
 import String from '../utils/string'
-import SCHEMA from '../schemas/core'
 
 /**
  * Changes.
@@ -20,7 +19,7 @@ const Changes = {}
  * Add a new `mark` to the characters at `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Mixed} mark
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -30,8 +29,8 @@ Changes.addMarkAtRange = (change, range, mark, options = {}) => {
   if (range.isCollapsed) return
 
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset, endKey, endOffset } = range
   const texts = document.getTextsAtRange(range)
 
@@ -49,10 +48,24 @@ Changes.addMarkAtRange = (change, range, mark, options = {}) => {
 }
 
 /**
+ * Add a list of `marks` to the characters at `range`.
+ *
+ * @param {Change} change
+ * @param {Range} range
+ * @param {Array<Mixed>} mark
+ * @param {Object} options
+ *   @property {Boolean} normalize
+ */
+
+Changes.addMarksAtRange = (change, range, marks, options = {}) => {
+  marks.forEach(mark => change.addMarkAtRange(range, mark, options))
+}
+
+/**
  * Delete everything in a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object} options
  *   @property {Boolean} normalize
  */
@@ -65,9 +78,9 @@ Changes.deleteAtRange = (change, range, options = {}) => {
   change.snapshotSelection()
 
   const { normalize = true } = options
-  const { state } = change
+  const { value } = change
   let { startKey, startOffset, endKey, endOffset } = range
-  let { document } = state
+  let { document } = value
   let isStartVoid = document.hasVoidParent(startKey)
   let isEndVoid = document.hasVoidParent(endKey)
   let startBlock = document.getClosestBlock(startKey)
@@ -107,7 +120,7 @@ Changes.deleteAtRange = (change, range, options = {}) => {
     if (!nextText) return
 
     // Continue...
-    document = change.state.document
+    document = change.value.document
     startKey = nextText.key
     startOffset = 0
     isStartVoid = document.hasVoidParent(startKey)
@@ -122,7 +135,7 @@ Changes.deleteAtRange = (change, range, options = {}) => {
     change.removeNodeByKey(endVoid.key, { normalize: false })
 
     // Continue...
-    document = change.state.document
+    document = change.value.document
     endKey = prevText.key
     endOffset = prevText.text.length
     isEndVoid = document.hasVoidParent(endKey)
@@ -218,7 +231,7 @@ Changes.deleteAtRange = (change, range, options = {}) => {
     // If the start and end blocks aren't the same, move and merge the end block
     // into the start block.
     if (startBlock.key != endBlock.key) {
-      document = change.state.document
+      document = change.value.document
       const lonely = document.getFurthestOnlyChildAncestor(endBlock.key)
 
       // Move the end block to be right after the start block.
@@ -242,7 +255,7 @@ Changes.deleteAtRange = (change, range, options = {}) => {
 
     // If we should normalize, do it now after everything.
     if (normalize) {
-      change.normalizeNodeByKey(ancestor.key, SCHEMA)
+      change.normalizeNodeByKey(ancestor.key)
     }
   }
 }
@@ -251,14 +264,14 @@ Changes.deleteAtRange = (change, range, options = {}) => {
  * Delete backward until the character boundary at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object} options
  *   @property {Boolean} normalize
  */
 
 Changes.deleteCharBackwardAtRange = (change, range, options) => {
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const startBlock = document.getClosestBlock(startKey)
   const offset = startBlock.getOffset(startKey)
@@ -272,33 +285,51 @@ Changes.deleteCharBackwardAtRange = (change, range, options) => {
  * Delete backward until the line boundary at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object} options
  *   @property {Boolean} normalize
  */
 
 Changes.deleteLineBackwardAtRange = (change, range, options) => {
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const startBlock = document.getClosestBlock(startKey)
   const offset = startBlock.getOffset(startKey)
-  const o = offset + startOffset
+  const startWithVoidInline = (
+    startBlock.nodes.size > 1 &&
+    startBlock.nodes.get(0).text == '' &&
+    startBlock.nodes.get(1).kind == 'inline'
+  )
+
+  let o = offset + startOffset
+
+  // If line starts with an void inline node, the text node inside this inline
+  // node disturbs the offset. Ignore this inline node and delete it afterwards.
+  if (startWithVoidInline) {
+    o -= 1
+  }
+
   change.deleteBackwardAtRange(range, o, options)
+
+  // Delete the remaining first inline node if needed.
+  if (startWithVoidInline) {
+    change.deleteBackward()
+  }
 }
 
 /**
  * Delete backward until the word boundary at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object} options
  *   @property {Boolean} normalize
  */
 
 Changes.deleteWordBackwardAtRange = (change, range, options) => {
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const startBlock = document.getClosestBlock(startKey)
   const offset = startBlock.getOffset(startKey)
@@ -312,7 +343,7 @@ Changes.deleteWordBackwardAtRange = (change, range, options) => {
  * Delete backward `n` characters at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Number} n (optional)
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -320,8 +351,8 @@ Changes.deleteWordBackwardAtRange = (change, range, options) => {
 
 Changes.deleteBackwardAtRange = (change, range, n = 1, options = {}) => {
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, focusOffset } = range
 
   // If the range is expanded, perform a regular delete instead.
@@ -437,14 +468,14 @@ Changes.deleteBackwardAtRange = (change, range, n = 1, options = {}) => {
  * Delete forward until the character boundary at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object} options
  *   @property {Boolean} normalize
  */
 
 Changes.deleteCharForwardAtRange = (change, range, options) => {
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const startBlock = document.getClosestBlock(startKey)
   const offset = startBlock.getOffset(startKey)
@@ -458,14 +489,14 @@ Changes.deleteCharForwardAtRange = (change, range, options) => {
  * Delete forward until the line boundary at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object} options
  *   @property {Boolean} normalize
  */
 
 Changes.deleteLineForwardAtRange = (change, range, options) => {
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const startBlock = document.getClosestBlock(startKey)
   const offset = startBlock.getOffset(startKey)
@@ -477,14 +508,14 @@ Changes.deleteLineForwardAtRange = (change, range, options) => {
  * Delete forward until the word boundary at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object} options
  *   @property {Boolean} normalize
  */
 
 Changes.deleteWordForwardAtRange = (change, range, options) => {
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const startBlock = document.getClosestBlock(startKey)
   const offset = startBlock.getOffset(startKey)
@@ -498,7 +529,7 @@ Changes.deleteWordForwardAtRange = (change, range, options) => {
  * Delete forward `n` characters at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Number} n (optional)
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -506,8 +537,8 @@ Changes.deleteWordForwardAtRange = (change, range, options) => {
 
 Changes.deleteForwardAtRange = (change, range, n = 1, options = {}) => {
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, focusOffset } = range
 
   // If the range is expanded, perform a regular delete instead.
@@ -526,7 +557,11 @@ Changes.deleteForwardAtRange = (change, range, n = 1, options = {}) => {
 
   // If the closest is not void, but empty, remove it
   if (block && !block.isVoid && block.isEmpty && document.nodes.size !== 1) {
+    const nextBlock = document.getNextBlock(block.key)
     change.removeNodeByKey(block.key, { normalize })
+    if (nextBlock && nextBlock.key) {
+      change.moveToStartOf(nextBlock)
+    }
     return
   }
 
@@ -622,7 +657,7 @@ Changes.deleteForwardAtRange = (change, range, n = 1, options = {}) => {
  * Insert a `block` node at `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Block|String|Object} block
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -637,8 +672,8 @@ Changes.insertBlockAtRange = (change, range, block, options = {}) => {
     range = range.collapseToStart()
   }
 
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const startBlock = document.getClosestBlock(startKey)
   const parent = document.getParent(startBlock.key)
@@ -667,7 +702,7 @@ Changes.insertBlockAtRange = (change, range, block, options = {}) => {
   }
 
   if (normalize) {
-    change.normalizeNodeByKey(parent.key, SCHEMA)
+    change.normalizeNodeByKey(parent.key)
   }
 }
 
@@ -675,7 +710,7 @@ Changes.insertBlockAtRange = (change, range, block, options = {}) => {
  * Insert a `fragment` at a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Document} fragment
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -701,8 +736,8 @@ Changes.insertFragmentAtRange = (change, range, fragment, options = {}) => {
 
   // Calculate a few things...
   const { startKey, startOffset } = range
-  const { state } = change
-  let { document } = state
+  const { value } = change
+  let { document } = value
   let startText = document.getDescendant(startKey)
   let startBlock = document.getClosestBlock(startText.key)
   let startChild = startBlock.getFurthestAncestor(startText.key)
@@ -738,8 +773,8 @@ Changes.insertFragmentAtRange = (change, range, fragment, options = {}) => {
     change.splitDescendantsByKey(startChild.key, startKey, startOffset, { normalize: false })
   }
 
-  // Update our variables with the new state.
-  document = change.state.document
+  // Update our variables with the new value.
+  document = change.value.document
   startText = document.getDescendant(startKey)
   startBlock = document.getClosestBlock(startKey)
   startChild = startBlock.getFurthestAncestor(startText.key)
@@ -780,7 +815,7 @@ Changes.insertFragmentAtRange = (change, range, fragment, options = {}) => {
 
   // Normalize if requested.
   if (normalize) {
-    change.normalizeNodeByKey(parent.key, SCHEMA)
+    change.normalizeNodeByKey(parent.key)
   }
 }
 
@@ -788,7 +823,7 @@ Changes.insertFragmentAtRange = (change, range, fragment, options = {}) => {
  * Insert an `inline` node at `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Inline|String|Object} inline
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -803,8 +838,8 @@ Changes.insertInlineAtRange = (change, range, inline, options = {}) => {
     range = range.collapseToStart()
   }
 
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
   const parent = document.getParent(startKey)
   const startText = document.assertDescendant(startKey)
@@ -816,7 +851,7 @@ Changes.insertInlineAtRange = (change, range, inline, options = {}) => {
   change.insertNodeByKey(parent.key, index + 1, inline, { normalize: false })
 
   if (normalize) {
-    change.normalizeNodeByKey(parent.key, SCHEMA)
+    change.normalizeNodeByKey(parent.key)
   }
 }
 
@@ -824,7 +859,7 @@ Changes.insertInlineAtRange = (change, range, inline, options = {}) => {
  * Insert `text` at a `range`, with optional `marks`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {String} text
  * @param {Set<Mark>} marks (optional)
  * @param {Object} options
@@ -833,15 +868,21 @@ Changes.insertInlineAtRange = (change, range, inline, options = {}) => {
 
 Changes.insertTextAtRange = (change, range, text, marks, options = {}) => {
   let { normalize } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const { startKey, startOffset } = range
+  let key = startKey
+  let offset = startOffset
   const parent = document.getParent(startKey)
 
   if (parent.isVoid) return
 
   if (range.isExpanded) {
     change.deleteAtRange(range, { normalize: false })
+
+    // Update range start after delete
+    key = change.value.startKey
+    offset = change.value.startOffset
   }
 
   // PERF: Unless specified, don't normalize if only inserting text.
@@ -849,14 +890,14 @@ Changes.insertTextAtRange = (change, range, text, marks, options = {}) => {
     normalize = range.isExpanded
   }
 
-  change.insertTextByKey(startKey, startOffset, text, marks, { normalize })
+  change.insertTextByKey(key, offset, text, marks, { normalize })
 }
 
 /**
  * Remove an existing `mark` to the characters at `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Mark|String} mark (optional)
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -866,8 +907,8 @@ Changes.removeMarkAtRange = (change, range, mark, options = {}) => {
   if (range.isCollapsed) return
 
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const texts = document.getTextsAtRange(range)
   const { startKey, startOffset, endKey, endOffset } = range
 
@@ -888,7 +929,7 @@ Changes.removeMarkAtRange = (change, range, mark, options = {}) => {
  * Set the `properties` of block nodes in a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object|String} properties
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -896,8 +937,8 @@ Changes.removeMarkAtRange = (change, range, mark, options = {}) => {
 
 Changes.setBlockAtRange = (change, range, properties, options = {}) => {
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const blocks = document.getBlocksAtRange(range)
 
   blocks.forEach((block) => {
@@ -909,7 +950,7 @@ Changes.setBlockAtRange = (change, range, properties, options = {}) => {
  * Set the `properties` of inline nodes in a `range`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Object|String} properties
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -917,8 +958,8 @@ Changes.setBlockAtRange = (change, range, properties, options = {}) => {
 
 Changes.setInlineAtRange = (change, range, properties, options = {}) => {
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const inlines = document.getInlinesAtRange(range)
 
   inlines.forEach((inline) => {
@@ -930,7 +971,7 @@ Changes.setInlineAtRange = (change, range, properties, options = {}) => {
  * Split the block nodes at a `range`, to optional `height`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Number} height (optional)
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -945,8 +986,8 @@ Changes.splitBlockAtRange = (change, range, height = 1, options = {}) => {
   }
 
   const { startKey, startOffset } = range
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   let node = document.assertDescendant(startKey)
   let parent = document.getClosestBlock(node.key)
   let h = 0
@@ -964,7 +1005,7 @@ Changes.splitBlockAtRange = (change, range, height = 1, options = {}) => {
  * Split the inline nodes at a `range`, to optional `height`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Number} height (optional)
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -979,8 +1020,8 @@ Changes.splitInlineAtRange = (change, range, height = Infinity, options = {}) =>
   }
 
   const { startKey, startOffset } = range
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   let node = document.assertDescendant(startKey)
   let parent = document.getClosestInline(node.key)
   let h = 0
@@ -999,7 +1040,7 @@ Changes.splitInlineAtRange = (change, range, height = Infinity, options = {}) =>
  * it's already there.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Mixed} mark
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -1011,8 +1052,8 @@ Changes.toggleMarkAtRange = (change, range, mark, options = {}) => {
   mark = Mark.create(mark)
 
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const marks = document.getActiveMarksAtRange(range)
   const exists = marks.some(m => m.equals(mark))
 
@@ -1027,7 +1068,7 @@ Changes.toggleMarkAtRange = (change, range, mark, options = {}) => {
  * Unwrap all of the block nodes in a `range` from a block with `properties`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {String|Object} properties
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -1037,8 +1078,8 @@ Changes.unwrapBlockAtRange = (change, range, properties, options = {}) => {
   properties = Node.createProperties(properties)
 
   const { normalize = true } = options
-  const { state } = change
-  let { document } = state
+  const { value } = change
+  let { document } = value
   const blocks = document.getBlocksAtRange(range)
   const wrappers = blocks
     .map((block) => {
@@ -1095,7 +1136,7 @@ Changes.unwrapBlockAtRange = (change, range, properties, options = {}) => {
     else {
       const firstText = firstMatch.getFirstText()
       change.splitDescendantsByKey(block.key, firstText.key, 0, { normalize: false })
-      document = change.state.document
+      document = change.value.document
 
       children.forEach((child, i) => {
         if (i == 0) {
@@ -1111,7 +1152,7 @@ Changes.unwrapBlockAtRange = (change, range, properties, options = {}) => {
 
   // TODO: optmize to only normalize the right block
   if (normalize) {
-    change.normalizeDocument(SCHEMA)
+    change.normalizeDocument()
   }
 }
 
@@ -1119,7 +1160,7 @@ Changes.unwrapBlockAtRange = (change, range, properties, options = {}) => {
  * Unwrap the inline nodes in a `range` from an inline with `properties`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {String|Object} properties
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -1129,8 +1170,8 @@ Changes.unwrapInlineAtRange = (change, range, properties, options = {}) => {
   properties = Node.createProperties(properties)
 
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
   const texts = document.getTextsAtRange(range)
   const inlines = texts
     .map((text) => {
@@ -1147,7 +1188,7 @@ Changes.unwrapInlineAtRange = (change, range, properties, options = {}) => {
     .toList()
 
   inlines.forEach((inline) => {
-    const parent = change.state.document.getParent(inline.key)
+    const parent = change.value.document.getParent(inline.key)
     const index = parent.nodes.indexOf(inline)
 
     inline.nodes.forEach((child, i) => {
@@ -1157,7 +1198,7 @@ Changes.unwrapInlineAtRange = (change, range, properties, options = {}) => {
 
   // TODO: optmize to only normalize the right block
   if (normalize) {
-    change.normalizeDocument(SCHEMA)
+    change.normalizeDocument()
   }
 }
 
@@ -1165,7 +1206,7 @@ Changes.unwrapInlineAtRange = (change, range, properties, options = {}) => {
  * Wrap all of the blocks in a `range` in a new `block`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Block|Object|String} block
  * @param {Object} options
  *   @property {Boolean} normalize
@@ -1176,8 +1217,8 @@ Changes.wrapBlockAtRange = (change, range, block, options = {}) => {
   block = block.set('nodes', block.nodes.clear())
 
   const { normalize = true } = options
-  const { state } = change
-  const { document } = state
+  const { value } = change
+  const { document } = value
 
   const blocks = document.getBlocksAtRange(range)
   const firstblock = blocks.first()
@@ -1228,7 +1269,7 @@ Changes.wrapBlockAtRange = (change, range, block, options = {}) => {
   })
 
   if (normalize) {
-    change.normalizeNodeByKey(parent.key, SCHEMA)
+    change.normalizeNodeByKey(parent.key)
   }
 }
 
@@ -1236,15 +1277,15 @@ Changes.wrapBlockAtRange = (change, range, block, options = {}) => {
  * Wrap the text and inlines in a `range` in a new `inline`.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {Inline|Object|String} inline
  * @param {Object} options
  *   @property {Boolean} normalize
  */
 
 Changes.wrapInlineAtRange = (change, range, inline, options = {}) => {
-  const { state } = change
-  let { document } = state
+  const { value } = change
+  let { document } = value
   const { normalize = true } = options
   const { startKey, startOffset, endKey, endOffset } = range
 
@@ -1270,7 +1311,7 @@ Changes.wrapInlineAtRange = (change, range, inline, options = {}) => {
   change.splitDescendantsByKey(endChild.key, endKey, endOffset, { normalize: false })
   change.splitDescendantsByKey(startChild.key, startKey, startOffset, { normalize: false })
 
-  document = change.state.document
+  document = change.value.document
   startBlock = document.getDescendant(startBlock.key)
   endBlock = document.getDescendant(endBlock.key)
   startChild = startBlock.getFurthestAncestor(startKey)
@@ -1279,7 +1320,7 @@ Changes.wrapInlineAtRange = (change, range, inline, options = {}) => {
   const endIndex = endBlock.nodes.indexOf(endChild)
 
   if (startBlock == endBlock) {
-    document = change.state.document
+    document = change.value.document
     startBlock = document.getClosestBlock(startKey)
     startChild = startBlock.getFurthestAncestor(startKey)
 
@@ -1300,7 +1341,7 @@ Changes.wrapInlineAtRange = (change, range, inline, options = {}) => {
     })
 
     if (normalize) {
-      change.normalizeNodeByKey(startBlock.key, SCHEMA)
+      change.normalizeNodeByKey(startBlock.key)
     }
   }
 
@@ -1323,8 +1364,8 @@ Changes.wrapInlineAtRange = (change, range, inline, options = {}) => {
 
     if (normalize) {
       change
-        .normalizeNodeByKey(startBlock.key, SCHEMA)
-        .normalizeNodeByKey(endBlock.key, SCHEMA)
+        .normalizeNodeByKey(startBlock.key)
+        .normalizeNodeByKey(endBlock.key)
     }
 
     blocks.slice(1, -1).forEach((block) => {
@@ -1336,7 +1377,7 @@ Changes.wrapInlineAtRange = (change, range, inline, options = {}) => {
       })
 
       if (normalize) {
-        change.normalizeNodeByKey(block.key, SCHEMA)
+        change.normalizeNodeByKey(block.key)
       }
     })
   }
@@ -1346,7 +1387,7 @@ Changes.wrapInlineAtRange = (change, range, inline, options = {}) => {
  * Wrap the text in a `range` in a prefix/suffix.
  *
  * @param {Change} change
- * @param {Selection} range
+ * @param {Range} range
  * @param {String} prefix
  * @param {String} suffix (optional)
  * @param {Object} options

@@ -2,21 +2,21 @@
 
 import h from '../../helpers/h'
 
-export const schema = {}
+export const props = {}
 
-export const state = (
-  <state>
+export const value = (
+  <value>
     <document>
       <paragraph>
         word
       </paragraph>
     </document>
-  </state>
+  </value>
 )
 
 export const output = `
 <div data-slate-editor="true" contenteditable="true" role="textbox">
-  <div style="position:relative;">
+  <div style="position:relative">
     <span>
       <span>word</span>
     </span>

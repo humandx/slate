@@ -1,27 +1,10 @@
 
-import { Editor } from 'slate-react'
-import { State } from 'slate'
+import { Editor, getEventTransfer } from 'slate-react'
+import { Value } from 'slate'
 
 import React from 'react'
-import initialState from './state.json'
+import initialValue from './value.json'
 import isUrl from 'is-url'
-
-/**
- * Define a schema.
- *
- * @type {Object}
- */
-
-const schema = {
-  nodes: {
-    paragraph: props => <p>{props.children}</p>,
-    link: (props) => {
-      const { data } = props.node
-      const href = data.get('href')
-      return <a {...props.attributes} href={href}>{props.children}</a>
-    }
-  }
-}
 
 /**
  * A change helper to standardize wrapping links.
@@ -58,14 +41,14 @@ function unwrapLink(change) {
 class Links extends React.Component {
 
   /**
-   * Deserialize the raw initial state.
+   * Deserialize the raw initial value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState)
-  };
+    value: Value.fromJSON(initialValue)
+  }
 
   /**
    * Check whether the current selection has a link in it.
@@ -74,8 +57,8 @@ class Links extends React.Component {
    */
 
   hasLinks = () => {
-    const { state } = this.state
-    return state.inlines.some(inline => inline.type == 'link')
+    const { value } = this.state
+    return value.inlines.some(inline => inline.type == 'link')
   }
 
   /**
@@ -84,28 +67,28 @@ class Links extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
    * When clicking a link, if the selection has a link in it, remove the link.
    * Otherwise, add a new link with an href and text.
    *
-   * @param {Event} e
+   * @param {Event} event
    */
 
-  onClickLink = (e) => {
-    e.preventDefault()
-    const { state } = this.state
+  onClickLink = (event) => {
+    event.preventDefault()
+    const { value } = this.state
     const hasLinks = this.hasLinks()
-    const change = state.change()
+    const change = value.change()
 
     if (hasLinks) {
       change.call(unwrapLink)
     }
 
-    else if (state.isExpanded) {
+    else if (value.isExpanded) {
       const href = window.prompt('Enter the URL of the link:')
       change.call(wrapLink, href)
     }
@@ -125,21 +108,23 @@ class Links extends React.Component {
   /**
    * On paste, if the text is a link, wrap the selection in a link.
    *
-   * @param {Event} e
-   * @param {Object} data
+   * @param {Event} event
    * @param {Change} change
    */
 
-  onPaste = (e, data, change) => {
-    if (change.state.isCollapsed) return
-    if (data.type != 'text' && data.type != 'html') return
-    if (!isUrl(data.text)) return
+  onPaste = (event, change) => {
+    if (change.value.isCollapsed) return
+
+    const transfer = getEventTransfer(event)
+    const { type, text } = transfer
+    if (type != 'text' && type != 'html') return
+    if (!isUrl(text)) return
 
     if (this.hasLinks()) {
       change.call(unwrapLink)
     }
 
-    change.call(wrapLink, data.text)
+    change.call(wrapLink, text)
     return true
   }
 
@@ -185,13 +170,32 @@ class Links extends React.Component {
     return (
       <div className="editor">
         <Editor
-          schema={schema}
-          state={this.state.state}
+          placeholder="Enter some text..."
+          value={this.state.value}
           onChange={this.onChange}
           onPaste={this.onPaste}
+          renderNode={this.renderNode}
         />
       </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    const { attributes, children, node } = props
+    switch (node.type) {
+      case 'link': {
+        const { data } = node
+        const href = data.get('href')
+        return <a {...attributes} href={href}>{children}</a>
+      }
+    }
   }
 
 }

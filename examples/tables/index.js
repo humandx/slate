@@ -1,26 +1,9 @@
 
 import { Editor } from 'slate-react'
-import { State } from 'slate'
+import { Value } from 'slate'
 
 import React from 'react'
-import initialState from './state.json'
-
-/**
- * Define a schema.
- *
- * @type {Object}
- */
-
-const schema = {
-  nodes: {
-    'table': props => <table><tbody {...props.attributes}>{props.children}</tbody></table>,
-    'table-row': props => <tr {...props.attributes}>{props.children}</tr>,
-    'table-cell': props => <td {...props.attributes}>{props.children}</td>,
-  },
-  marks: {
-    'bold': props => <strong>{props.children}</strong>
-  }
-}
+import initialValue from './value.json'
 
 /**
  * The tables example.
@@ -31,26 +14,26 @@ const schema = {
 class Tables extends React.Component {
 
   /**
-   * Deserialize the raw initial state.
+   * Deserialize the raw initial value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState)
-  };
+    value: Value.fromJSON(initialValue)
+  }
 
   /**
    * On backspace, do nothing if at the start of a table cell.
    *
-   * @param {Event} e
+   * @param {Event} event
    * @param {Change} change
    */
 
-  onBackspace = (e, change) => {
-    const { state } = change
-    if (state.startOffset != 0) return
-    e.preventDefault()
+  onBackspace = (event, change) => {
+    const { value } = change
+    if (value.startOffset != 0) return
+    event.preventDefault()
     return true
   }
 
@@ -60,47 +43,46 @@ class Tables extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
    * On delete, do nothing if at the end of a table cell.
    *
-   * @param {Event} e
+   * @param {Event} event
    * @param {Change} change
    */
 
-  onDelete = (e, change) => {
-    const { state } = change
-    if (state.endOffset != state.startText.text.length) return
-    e.preventDefault()
+  onDelete = (event, change) => {
+    const { value } = change
+    if (value.endOffset != value.startText.text.length) return
+    event.preventDefault()
     return true
   }
 
   /**
    * On return, do nothing if inside a table cell.
    *
-   * @param {Event} e
+   * @param {Event} event
    * @param {Change} change
    */
 
-  onEnter = (e, change) => {
-    e.preventDefault()
+  onEnter = (event, change) => {
+    event.preventDefault()
     return true
   }
 
   /**
    * On key down, check for our specific key shortcuts.
    *
-   * @param {Event} e
-   * @param {Object} data
+   * @param {Event} event
    * @param {Change} change
    */
 
-  onKeyDown = (e, data, change) => {
-    const { state } = change
-    const { document, selection } = state
+  onKeyDown = (event, change) => {
+    const { value } = change
+    const { document, selection } = value
     const { startKey } = selection
     const startNode = document.getDescendant(startKey)
 
@@ -109,19 +91,19 @@ class Tables extends React.Component {
       const prevBlock = document.getClosestBlock(previous.key)
 
       if (prevBlock.type == 'table-cell') {
-        e.preventDefault()
+        event.preventDefault()
         return true
       }
     }
 
-    if (state.startBlock.type != 'table-cell') {
+    if (value.startBlock.type != 'table-cell') {
       return
     }
 
-    switch (data.key) {
-      case 'backspace': return this.onBackspace(e, state)
-      case 'delete': return this.onDelete(e, state)
-      case 'enter': return this.onEnter(e, state)
+    switch (event.key) {
+      case 'Backspace': return this.onBackspace(event, change)
+      case 'Delete': return this.onDelete(event, change)
+      case 'Enter': return this.onEnter(event, change)
     }
   }
 
@@ -135,13 +117,45 @@ class Tables extends React.Component {
     return (
       <div className="editor">
         <Editor
-          schema={schema}
-          state={this.state.state}
-          onKeyDown={this.onKeyDown}
+          placeholder="Enter some text..."
+          value={this.state.value}
           onChange={this.onChange}
+          onKeyDown={this.onKeyDown}
+          renderNode={this.renderNode}
+          renderMark={this.renderMark}
         />
       </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    const { attributes, children, node } = props
+    switch (node.type) {
+      case 'table': return <table><tbody {...attributes}>{children}</tbody></table>
+      case 'table-row': return <tr {...attributes}>{children}</tr>
+      case 'table-cell': return <td {...attributes}>{children}</td>
+    }
+  }
+
+  /**
+   * Render a Slate mark.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderMark = (props) => {
+    const { children, mark } = props
+    switch (mark.type) {
+      case 'bold': return <strong>{children}</strong>
+    }
   }
 
 }

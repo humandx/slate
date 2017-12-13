@@ -13,13 +13,13 @@ import React from 'react'
 class PlainText extends React.Component {
 
   /**
-   * Deserialize the initial editor state.
+   * Deserialize the initial editor value.
    *
    * @type {Object}
    */
 
   state = {
-    state: Plain.deserialize('This is editable plain text, just like a <textarea>!')
+    value: Plain.deserialize('This is editable plain text, just like a <textarea>!')
   }
 
   /**
@@ -28,8 +28,8 @@ class PlainText extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
@@ -40,11 +40,13 @@ class PlainText extends React.Component {
 
   render() {
     return (
-      <Editor
-        placeholder={'Enter some plain text...'}
-        state={this.state.state}
-        onChange={this.onChange}
-      />
+      <div className="editor">
+        <Editor
+          placeholder="Enter some plain text..."
+          value={this.state.value}
+          onChange={this.onChange}
+        />
+      </div>
     )
   }
 

@@ -3,27 +3,26 @@ import Plain from 'slate-plain-serializer'
 import { Editor } from 'slate-react'
 
 import React from 'react'
-import AutoReplaceText from 'slate-auto-replace-text'
 import CollapseOnEscape from 'slate-collapse-on-escape'
 import SoftBreak from 'slate-soft-break'
 
 /**
- * Word Count plugin
+ * A simple word count plugin.
  *
- * Example of using plugin.render to create a HOC
- * https://docs.slatejs.org/reference/plugins/plugin.html#render
+ * @param {Object} options
+ * @return {Object}
  */
 
 function WordCount(options) {
   return {
-    render(props) {
+    renderEditor(props) {
       return (
         <div>
           <div>
             {props.children}
           </div>
           <span className="word-counter">
-            Word Count: {props.state.document.text.split(' ').length}
+            Word Count: {props.value.document.text.split(' ').length}
           </span>
         </div>
       )
@@ -31,15 +30,11 @@ function WordCount(options) {
   }
 }
 
-
 /**
  * Plugins.
  */
 
 const plugins = [
-  AutoReplaceText('(c)', '©'),
-  AutoReplaceText('(r)', '®'),
-  AutoReplaceText('(tm)', '™'),
   CollapseOnEscape(),
   SoftBreak(),
   WordCount()
@@ -54,21 +49,16 @@ const plugins = [
 class Plugins extends React.Component {
 
   /**
-   * Deserialize the initial editor state.
+   * Deserialize the initial editor value.
    *
    * @type {Object}
    */
 
   state = {
-    state: Plain.deserialize(`This example shows how you can extend Slate with plugins! It uses four fairly simple plugins, but you can use any plugins you want, or write your own!
-
-The first is an "auto replacer". Try typing "(c)" and you'll see it turn into a copyright symbol automatically!
-
-The second is a simple plugin to collapse the selection whenever the escape key is pressed. Try selecting some text and pressing escape.
-
-The third is another simple plugin that inserts a "soft" break when enter is pressed instead of creating a new block. Try pressing enter!
-
-The fourth is an example of using the plugin.render property to create a higher-order-component.`)
+    value: Plain.deserialize(`This example shows how you can extend Slate with plugins! It uses four fairly simple plugins, but you can use any plugins you want, or write your own!
+The first is a simple plugin to collapse the selection whenever the escape key is pressed. Try selecting some text and pressing escape.
+The second is another simple plugin that inserts a "soft" break when enter is pressed instead of creating a new block. Try pressing enter!
+The third is an example of using the plugin.render property to create a higher-order-component.`)
   }
 
   /**
@@ -77,8 +67,8 @@ The fourth is an example of using the plugin.render property to create a higher-
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
@@ -89,12 +79,14 @@ The fourth is an example of using the plugin.render property to create a higher-
 
   render() {
     return (
-      <Editor
-        placeholder={'Enter some text...'}
-        plugins={plugins}
-        state={this.state.state}
-        onChange={this.onChange}
-      />
+      <div className="editor">
+        <Editor
+          placeholder="Enter some text..."
+          plugins={plugins}
+          value={this.state.value}
+          onChange={this.onChange}
+        />
+      </div>
     )
   }
 

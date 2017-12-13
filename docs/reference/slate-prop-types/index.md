@@ -19,7 +19,7 @@ class Toolbar extends React.Component {
   propTypes = {
     block: Types.block,
     schema: Types.schema.isRequired,
-    state: Types.state.isRequired,
+    value: Types.value.isRequired,
   }
 
   ...
@@ -70,6 +70,14 @@ Ensure that a value is a Slate `Inline`.
 
 Ensure that a value is an immutable `List` of Slate [`Inline`](../slate/inline.md) objects.
 
+### `leaf`
+
+Ensure that a value is a Slate `Leaf`.
+
+### `leaves`
+
+Ensure that a value is an immutable `List` of Slate [`Leaf`](../slate/leaf.md) objects.
+
 ### `mark`
 
 Ensure that a value is a Slate `Mark`.
@@ -98,17 +106,9 @@ Ensure that a value is an immutable `List` of Slate [`Range`](../slate/range.md)
 
 Ensure that a value is a Slate `Schema`.
 
-### `selection`
-
-Ensure that a value is a Slate `Selection`.
-
 ### `stack`
 
 Ensure that a value is a Slate `Stack`.
-
-### `state`
-
-Ensure that a value is a Slate `State`.
 
 ### `text`
 
@@ -117,3 +117,7 @@ Ensure that a value is a Slate [`Text`](../slate/text.md).
 ### `texts`
 
 Ensure that a value is an immutable `List` of Slate [`Text`](../slate/text.md) objects.
+
+### `value`
+
+Ensure that a value is a Slate `Value`.

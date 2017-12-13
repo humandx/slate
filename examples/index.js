@@ -8,8 +8,9 @@ import CodeHighlighting from './code-highlighting'
 import Embeds from './embeds'
 import Emojis from './emojis'
 import ForcedLayout from './forced-layout'
+import History from './history'
 import HoveringMenu from './hovering-menu'
-import Iframes from './iframes'
+import HugeDocument from './huge-document'
 import Images from './images'
 import Links from './links'
 import MarkdownPreview from './markdown-preview'
@@ -20,19 +21,9 @@ import Plugins from './plugins'
 import RTL from './rtl'
 import ReadOnly from './read-only'
 import RichText from './rich-text'
+import SearchHighlighting from './search-highlighting'
+import SyncingOperations from './syncing-operations'
 import Tables from './tables'
-
-import DevHugeDocument from './dev/huge-document'
-import DevPerformancePlain from './dev/performance-plain'
-import DevPerformanceRich from './dev/performance-rich'
-
-/**
- * Environment.
- *
- * @type {String}
- */
-
-const { NODE_ENV } = process.env
 
 /**
  * Examples.
@@ -54,15 +45,14 @@ const EXAMPLES = [
   ['Code Highlighting', CodeHighlighting, '/code-highlighting'],
   ['Tables', Tables, '/tables'],
   ['Paste HTML', PasteHtml, '/paste-html'],
+  ['Search Highlighting', SearchHighlighting, '/search-highlighting'],
+  ['Syncing Operations', SyncingOperations, '/syncing-operations'],
   ['Read-only', ReadOnly, '/read-only'],
   ['RTL', RTL, '/rtl'],
   ['Plugins', Plugins, '/plugins'],
-  ['Iframes', Iframes, '/iframes'],
   ['Forced Layout', ForcedLayout, '/forced-layout'],
-
-  ['DEV:Huge', DevHugeDocument, '/dev-huge', true],
-  ['DEV:Plain', DevPerformancePlain, '/dev-performance-plain', true],
-  ['DEV:Rich', DevPerformanceRich, '/dev-performance-rich', true],
+  ['Huge Document', HugeDocument, '/huge-document'],
+  ['History', History, '/history'],
 ]
 
 /**
@@ -72,6 +62,15 @@ const EXAMPLES = [
  */
 
 class App extends React.Component {
+
+  state = {
+    error: null,
+    info: null,
+  }
+
+  componentDidCatch(error, info) {
+    this.setState({ error, info })
+  }
 
   render() {
     return (
@@ -84,22 +83,45 @@ class App extends React.Component {
           </div>
         </div>
         <div className="tabs">
-          {EXAMPLES.map(([ name, Component, path, isDev ]) => (
-            (NODE_ENV != 'production' || !isDev) && (
-              <NavLink key={path} to={path} className="tab"activeClassName="active">
-                {name}
-              </NavLink>
-            )
+          {EXAMPLES.map(([ name, Component, path ]) => (
+            <NavLink key={path} to={path} className="tab"activeClassName="active">
+              {name}
+            </NavLink>
           ))}
         </div>
-        <div className="example">
-          <Switch>
-            {EXAMPLES.map(([ name, Component, path, isDev ]) => (
-              <Route key={path} path={path} component={Component} />
-            ))}
-            <Redirect from="/" to="/rich-text" />
-          </Switch>
-        </div>
+        {this.state.error
+          ? this.renderError()
+          : this.renderExample()}
+      </div>
+    )
+  }
+
+  renderExample() {
+    return (
+      <div className="example">
+        <Switch>
+          {EXAMPLES.map(([ name, Component, path ]) => (
+            <Route key={path} path={path} component={Component} />
+          ))}
+          <Redirect from="/" to="/rich-text" />
+        </Switch>
+      </div>
+    )
+  }
+
+  renderError() {
+    return (
+      <div className="error">
+        <p>
+          An error was thrown by one of the example's React components!
+        </p>
+        <pre className="info">
+          <code>
+            {this.state.error.stack}
+            {'\n'}
+            {this.state.info.componentStack}
+          </code>
+        </pre>
       </div>
     )
   }
@@ -113,14 +135,6 @@ class App extends React.Component {
  */
 
 const router = <HashRouter><App /></HashRouter>
-
-/**
- * Attach `Perf` when not in production.
- */
-
-if (NODE_ENV != 'production') {
-  window.Perf = require('react-addons-perf')
-}
 
 /**
  * Mount the router.

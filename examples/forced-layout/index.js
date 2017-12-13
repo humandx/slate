@@ -1,9 +1,35 @@
 
 import { Editor } from 'slate-react'
-import { Block, State } from 'slate'
+import { Block, Value } from 'slate'
 
 import React from 'react'
-import initialState from './state.json'
+import initialValue from './value.json'
+
+/**
+ * A simple schema to enforce the nodes in the Slate document.
+ *
+ * @type {Object}
+ */
+
+const schema = {
+  document: {
+    nodes: [
+      { types: ['title'], min: 1, max: 1 },
+      { types: ['paragraph'], min: 1 },
+    ],
+    normalize: (change, reason, { node, child, index }) => {
+      switch (reason) {
+        case 'child_type_invalid': {
+          return change.setNodeByKey(child.key, index == 0 ? 'title' : 'paragraph')
+        }
+        case 'child_required': {
+          const block = Block.create(index == 0 ? 'title' : 'paragraph')
+          return change.insertNodeByKey(node.key, index, block)
+        }
+      }
+    }
+  }
+}
 
 /**
  * The Forced Layout example.
@@ -14,64 +40,13 @@ import initialState from './state.json'
 class ForcedLayout extends React.Component {
 
   /**
-   * Deserialize the initial editor state.
+   * Deserialize the initial editor value.
    *
    * @type {Object}
    */
 
   state = {
-    state: State.fromJSON(initialState),
-    schema: {
-      nodes: {
-        'title': props => <h2 {...props.attrs}>{props.children}</h2>,
-        'paragraph': props => <p {...props.attrs}>{props.children}</p>
-      },
-      rules: [
-        /* Rule that always makes the first block a title, normalizes by inserting one if no children, or setting the top to be a title */
-
-        {
-          match: node => node.kind === 'document',
-          validate: document => !document.nodes.size || document.nodes.first().type !== 'title' ? document.nodes : null,
-          normalize: (change, document, nodes) => {
-            if (!nodes.size) {
-              const title = Block.create({ type: 'title', data: {}})
-              return change.insertNodeByKey(document.key, 0, title)
-            }
-
-            return change.setNodeByKey(nodes.first().key, 'title')
-          }
-        },
-
-        /* Rule that only allows for one title, normalizes by making titles paragraphs */
-
-        {
-          match: node => node.kind === 'document',
-          validate: (document) => {
-            const invalidChildren = document.nodes.filter((child, index) => child.type === 'title' && index !== 0)
-            return invalidChildren.size ? invalidChildren : null
-          },
-          normalize: (change, document, invalidChildren) => {
-            let updatedTransform = change
-            invalidChildren.forEach((child) => {
-              updatedTransform = change.setNodeByKey(child.key, 'paragraph')
-            })
-
-            return updatedTransform
-          }
-        },
-
-        /* Rule that forces at least one paragraph, normalizes by inserting an empty paragraph */
-
-        {
-          match: node => node.kind === 'document',
-          validate: document => document.nodes.size < 2 ? true : null,
-          normalize: (change, document) => {
-            const paragraph = Block.create({ type: 'paragraph', data: {}})
-            return change.insertNodeByKey(document.key, 1, paragraph)
-          }
-        }
-      ]
-    }
+    value: Value.fromJSON(initialValue),
   }
 
   /**
@@ -80,8 +55,8 @@ class ForcedLayout extends React.Component {
    * @param {Change} change
    */
 
-  onChange = ({ state }) => {
-    this.setState({ state })
+  onChange = ({ value }) => {
+    this.setState({ value })
   }
 
   /**
@@ -92,12 +67,31 @@ class ForcedLayout extends React.Component {
 
   render() {
     return (
-      <Editor
-        state={this.state.state}
-        schema={this.state.schema}
-        onChange={this.onChange}
-      />
+      <div className="editor">
+        <Editor
+          placeholder="Enter a title..."
+          value={this.state.value}
+          schema={schema}
+          onChange={this.onChange}
+          renderNode={this.renderNode}
+        />
+      </div>
     )
+  }
+
+  /**
+   * Render a Slate node.
+   *
+   * @param {Object} props
+   * @return {Element}
+   */
+
+  renderNode = (props) => {
+    const { attributes, children, node } = props
+    switch (node.type) {
+      case 'title': return <h2 {...attributes}>{children}</h2>
+      case 'paragraph': return <p {...attributes}>{children}</p>
+    }
   }
 
 }

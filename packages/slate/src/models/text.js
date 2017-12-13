@@ -1,11 +1,10 @@
 
 import isPlainObject from 'is-plain-object'
-import logger from 'slate-dev-logger'
-import { List, Record, OrderedSet, is } from 'immutable'
+import { List, OrderedSet, Record, Set, is } from 'immutable'
 
 import Character from './character'
 import Mark from './mark'
-import Range from './range'
+import Leaf from './leaf'
 import MODEL_TYPES from '../constants/model-types'
 import generateKey from '../utils/generate-key'
 import memoize from '../utils/memoize'
@@ -36,19 +35,19 @@ class Text extends Record(DEFAULTS) {
    * @return {Text}
    */
 
-  static create(attrs = {}) {
+  static create(attrs = '') {
     if (Text.isText(attrs)) {
       return attrs
     }
 
     if (typeof attrs == 'string') {
-      attrs = { ranges: [{ text: attrs }] }
+      attrs = { leaves: [{ text: attrs }] }
     }
 
     if (isPlainObject(attrs)) {
       if (attrs.text) {
         const { text, marks, key } = attrs
-        attrs = { key, ranges: [{ text, marks }] }
+        attrs = { key, leaves: [{ text, marks }] }
       }
 
       return Text.fromJSON(attrs)
@@ -58,19 +57,19 @@ class Text extends Record(DEFAULTS) {
   }
 
   /**
-   * Create a list of `Texts` from a `value`.
+   * Create a list of `Texts` from `elements`.
    *
-   * @param {Array<Text|Object>|List<Text|Object>} value
+   * @param {Array<Text|Object>|List<Text|Object>} elements
    * @return {List<Text>}
    */
 
-  static createList(value = []) {
-    if (List.isList(value) || Array.isArray(value)) {
-      const list = new List(value.map(Text.create))
+  static createList(elements = []) {
+    if (List.isList(elements) || Array.isArray(elements)) {
+      const list = new List(elements.map(Text.create))
       return list
     }
 
-    throw new Error(`\`Text.createList\` only accepts arrays or lists, but you passed it: ${value}`)
+    throw new Error(`\`Text.createList\` only accepts arrays or lists, but you passed it: ${elements}`)
   }
 
   /**
@@ -85,18 +84,13 @@ class Text extends Record(DEFAULTS) {
       return object
     }
 
-    let {
-      ranges = [],
+    const {
+      leaves = [],
       key = generateKey(),
     } = object
 
-    if (object.text) {
-      logger.deprecate('0.23.0', 'Passing `object.text` to `Text.fromJSON` has been deprecated, please use `object.ranges` instead.')
-      ranges = [{ text: object.text }]
-    }
-
-    const characters = ranges
-      .map(Range.fromJSON)
+    const characters = leaves
+      .map(Leaf.fromJSON)
       .reduce((l, r) => l.concat(r.getCharacters()), new List())
 
     const node = new Text({
@@ -114,43 +108,25 @@ class Text extends Record(DEFAULTS) {
   static fromJS = Text.fromJSON
 
   /**
-   * Check if a `value` is a `Text`.
+   * Check if `any` is a `Text`.
    *
-   * @param {Any} value
+   * @param {Any} any
    * @return {Boolean}
    */
 
-  static isText(value) {
-    return !!(value && value[MODEL_TYPES.TEXT])
+  static isText(any) {
+    return !!(any && any[MODEL_TYPES.TEXT])
   }
 
   /**
-   * Check if a `value` is a list of texts.
+   * Check if `any` is a list of texts.
    *
-   * @param {Any} value
+   * @param {Any} any
    * @return {Boolean}
    */
 
-  static isTextList(value) {
-    return List.isList(value) && value.every(item => Text.isText(item))
-  }
-
-  /**
-   * Deprecated.
-   */
-
-  static createFromString(string) {
-    logger.deprecate('0.22.0', 'The `Text.createFromString(string)` method is deprecated, use `Text.create(string)` instead.')
-    return Text.create(string)
-  }
-
-  /**
-   * Deprecated.
-   */
-
-  static createFromRanges(ranges) {
-    logger.deprecate('0.22.0', 'The `Text.createFromRanges(ranges)` method is deprecated, use `Text.create(ranges)` instead.')
-    return Text.create(ranges)
+  static isTextList(any) {
+    return List.isList(any) && any.every(item => Text.isText(item))
   }
 
   /**
@@ -193,11 +169,25 @@ class Text extends Record(DEFAULTS) {
    */
 
   addMark(index, length, mark) {
+    const marks = new Set([mark])
+    return this.addMarks(index, length, marks)
+  }
+
+  /**
+   * Add a `set` of marks at `index` and `length`.
+   *
+   * @param {Number} index
+   * @param {Number} length
+   * @param {Set<Mark>} set
+   * @return {Text}
+   */
+
+  addMarks(index, length, set) {
     const characters = this.characters.map((char, i) => {
       if (i < index) return char
       if (i >= index + length) return char
       let { marks } = char
-      marks = marks.add(mark)
+      marks = marks.union(set)
       char = char.set('marks', marks)
       return char
     })
@@ -206,24 +196,29 @@ class Text extends Record(DEFAULTS) {
   }
 
   /**
-   * Derive a set of decorated characters with `decorators`.
+   * Derive a set of decorated characters with `decorations`.
    *
-   * @param {Array} decorators
+   * @param {List<Decoration>} decorations
    * @return {List<Character>}
    */
 
-  getDecorations(decorators) {
-    const node = this
-    let { characters } = node
+  getDecoratedCharacters(decorations) {
+    let node = this
+    const { key, characters } = node
+
+    // PERF: Exit early if there are no characters to be decorated.
     if (characters.size == 0) return characters
 
-    for (let i = 0; i < decorators.length; i++) {
-      const decorator = decorators[i]
-      const decorateds = decorator(node)
-      characters = characters.merge(decorateds)
-    }
+    decorations.forEach((range) => {
+      const { startKey, endKey, startOffset, endOffset, marks } = range
+      const hasStart = startKey == key
+      const hasEnd = endKey == key
+      const index = hasStart ? startOffset : 0
+      const length = hasEnd ? endOffset - index : characters.size
+      node = node.addMarks(index, length, marks)
+    })
 
-    return characters
+    return node.characters
   }
 
   /**
@@ -233,8 +228,66 @@ class Text extends Record(DEFAULTS) {
    * @return {Array}
    */
 
-  getDecorators(schema) {
-    return schema.__getDecorators(this)
+  getDecorations(schema) {
+    return schema.__getDecorations(this)
+  }
+
+  /**
+   * Derive the leaves for a list of `characters`.
+   *
+   * @param {Array|Void} decorations (optional)
+   * @return {List<Leaf>}
+   */
+
+  getLeaves(decorations = []) {
+    const characters = this.getDecoratedCharacters(decorations)
+    let leaves = []
+
+    // PERF: cache previous values for faster lookup.
+    let prevChar
+    let prevLeaf
+
+    // If there are no characters, return one empty range.
+    if (characters.size == 0) {
+      leaves.push({})
+    }
+
+    // Otherwise, loop the characters and build the leaves...
+    else {
+      characters.forEach((char, i) => {
+        const { marks, text } = char
+
+        // The first one can always just be created.
+        if (i == 0) {
+          prevChar = char
+          prevLeaf = { text, marks }
+          leaves.push(prevLeaf)
+          return
+        }
+
+        // Otherwise, compare the current and previous marks.
+        const prevMarks = prevChar.marks
+        const isSame = is(marks, prevMarks)
+
+        // If the marks are the same, add the text to the previous range.
+        if (isSame) {
+          prevChar = char
+          prevLeaf.text += text
+          return
+        }
+
+        // Otherwise, create a new range.
+        prevChar = char
+        prevLeaf = { text, marks }
+        leaves.push(prevLeaf)
+      }, [])
+    }
+
+    // PERF: convert the leaves to immutable objects after iterating.
+    leaves = new List(leaves.map(object => new Leaf(object)))
+
+    // Return the leaves.
+    return leaves
   }
 
   /**
@@ -286,64 +339,6 @@ class Text extends Record(DEFAULTS) {
     return this.key == key
       ? this
       : null
-  }
-
-  /**
-   * Derive the ranges for a list of `characters`.
-   *
-   * @param {Array|Void} decorators (optional)
-   * @return {List<Range>}
-   */
-
-  getRanges(decorators = []) {
-    const characters = this.getDecorations(decorators)
-    let ranges = []
-
-    // PERF: cache previous values for faster lookup.
-    let prevChar
-    let prevRange
-
-    // If there are no characters, return one empty range.
-    if (characters.size == 0) {
-      ranges.push({})
-    }
-
-    // Otherwise, loop the characters and build the ranges...
-    else {
-      characters.forEach((char, i) => {
-        const { marks, text } = char
-
-        // The first one can always just be created.
-        if (i == 0) {
-          prevChar = char
-          prevRange = { text, marks }
-          ranges.push(prevRange)
-          return
-        }
-
-        // Otherwise, compare the current and previous marks.
-        const prevMarks = prevChar.marks
-        const isSame = is(marks, prevMarks)
-
-        // If the marks are the same, add the text to the previous range.
-        if (isSame) {
-          prevChar = char
-          prevRange.text += text
-          return
-        }
-
-        // Otherwise, create a new range.
-        prevChar = char
-        prevRange = { text, marks }
-        ranges.push(prevRange)
-      }, [])
-    }
-
-    // PERF: convert the ranges to immutable objects after iterating.
-    ranges = new List(ranges.map(object => new Range(object)))
-
-    // Return the ranges.
-    return ranges
   }
 
   /**
@@ -435,13 +430,12 @@ class Text extends Record(DEFAULTS) {
 
   toJSON(options = {}) {
     const object = {
-      key: this.key,
       kind: this.kind,
-      ranges: this.getRanges().toArray().map(r => r.toJSON()),
+      leaves: this.getLeaves().toArray().map(r => r.toJSON()),
     }
 
-    if (!options.preserveKeys) {
-      delete object.key
+    if (options.preserveKeys) {
+      object.key = this.key
     }
 
     return object
@@ -490,7 +484,7 @@ class Text extends Record(DEFAULTS) {
    */
 
   validate(schema) {
-    return schema.__validate(this)
+    return schema.validateNode(this)
   }
 
 }
@@ -513,10 +507,10 @@ memoize(Text.prototype, [
 })
 
 memoize(Text.prototype, [
+  'getDecoratedCharacters',
   'getDecorations',
-  'getDecorators',
+  'getLeaves',
   'getMarksAtIndex',
-  'getRanges',
   'validate'
 ], {
   takesArguments: true,

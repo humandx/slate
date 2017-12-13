@@ -17,13 +17,13 @@ import { resetKeyGenerator } from '..'
 
 describe('slate', () => {
   require('./serializers')
-  require('./schemas')
+  require('./schema')
   require('./changes')
   require('./history')
 })
 
 /**
- * Reset Slate's internal state before each text.
+ * Reset Slate's internal key generator state before each text.
  */
 
 beforeEach(() => {
