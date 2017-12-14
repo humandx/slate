@@ -17,6 +17,8 @@ import findRange from '../utils/find-range'
 import getEventRange from '../utils/get-event-range'
 import getEventTransfer from '../utils/get-event-transfer'
 import setEventTransfer from '../utils/set-event-transfer'
+import { IS_ANDROID } from '../constants/environment'
+
 
 /**
  * Debug.
@@ -47,7 +49,17 @@ function AfterPlugin() {
     debug('onBeforeInput', { event })
 
     event.preventDefault()
-    change.insertText(event.data)
+    if (IS_ANDROID) {
+      /**
+       * If isComposing, then the text has already been inserted via
+       * `onCompositionEnd` in the before.js plugin.
+       */
+      if (!editor.state.isComposing) {
+        change.insertText(event.data)
+      }
+    } else {
+      change.insertText(event.data)
+    }
   }
 
   /**

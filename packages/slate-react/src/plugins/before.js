@@ -149,6 +149,23 @@ function BeforePlugin() {
       editor.setState({ isComposing: false })
     })
 
+    if (IS_ANDROID){
+      if (isComposing) {
+        if (event.data) {
+          /**
+           * For Android, insert the entire text contained in event.data
+           * Need to set the editor.state.isComposing to false to prevent
+           * the `onBeforeInput` handler in the after.js plugin to insert the
+           * text again.
+           *
+           */
+          change.insertText(event.data)
+          isComposing = false
+          editor.setState({ isComposing: false })
+        }
+      }
+    }
+
     debug('onCompositionEnd', { event })
   }
 
