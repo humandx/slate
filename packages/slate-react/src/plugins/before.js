@@ -11,6 +11,7 @@ import {
   SUPPORTED_EVENTS
 } from '../constants/environment'
 import findNode from '../utils/find-node'
+import findRange from '../utils/find-range'
 
 /**
  * Debug.
@@ -19,6 +20,7 @@ import findNode from '../utils/find-node'
  */
 
 const debug = Debug('slate:before')
+debug.enabled = true;
 
 /**
  * The core before plugin.
@@ -29,7 +31,10 @@ const debug = Debug('slate:before')
 function BeforePlugin() {
   let activeElement = null
   let compositionCount = 0
+  let compositionSelection = null
+  let compositionData = ""
   let isComposing = false
+  let inKeyDownBlock = false
   let isCopying = false
   let isDragging = false
 
@@ -126,6 +131,45 @@ function BeforePlugin() {
   }
 
   /**
+   * On composition start.
+   *
+   * @param {Event} event
+   * @param {Change} change
+   * @param {Editor} editor
+   */
+
+  function onCompositionStart(event, change, editor) {
+    isComposing = true
+    const window = getWindow(event.target)
+    compositionSelection = findRange(window.getSelection(), change.value)
+    compositionData = event.data
+    compositionCount++
+
+    // HACK: we need to re-render the editor here so that it will update its
+    // placeholder in case one is currently rendered. This should be handled
+    // differently ideally, in a less invasive way?
+    editor.setState({ isComposing: true })
+
+    debug('onCompositionStart', { event })
+  }
+
+  /**
+   * On composition update.
+   *
+   * @param {Event} event
+   * @param {Change} change
+   * @param {Editor} editor
+   */
+
+  function onCompositionUpdate(event, change, editor) {
+    const window = getWindow(event.target)
+    compositionSelection = findRange(window.getSelection(), change.value)
+    compositionData = event.data
+
+    debug('onCompositionUpdate', { event })
+  }
+
+  /**
    * On composition end.
    *
    * @param {Event} event
@@ -134,6 +178,9 @@ function BeforePlugin() {
    */
 
   function onCompositionEnd(event, change, editor) {
+    const window = getWindow(event.target)
+    compositionSelection = findRange(window.getSelection(), change.value)
+    compositionData = event.data
     const n = compositionCount
 
     // The `count` check here ensures that if another composition starts
@@ -150,26 +197,6 @@ function BeforePlugin() {
     })
 
     debug('onCompositionEnd', { event })
-  }
-
-  /**
-   * On composition start.
-   *
-   * @param {Event} event
-   * @param {Change} change
-   * @param {Editor} editor
-   */
-
-  function onCompositionStart(event, change, editor) {
-    isComposing = true
-    compositionCount++
-
-    // HACK: we need to re-render the editor here so that it will update its
-    // placeholder in case one is currently rendered. This should be handled
-    // differently ideally, in a less invasive way?
-    editor.setState({ isComposing: true })
-
-    debug('onCompositionStart', { event })
   }
 
   /**
@@ -357,6 +384,10 @@ function BeforePlugin() {
     if (isComposing) return true
     if (change.value.isBlurred) return true
 
+    event.inKeyDownBlock = inKeyDownBlock
+    event.compositionSelection = compositionSelection
+    event.compositionData = compositionData
+
     debug('onInput', { event })
   }
 
@@ -369,6 +400,7 @@ function BeforePlugin() {
    */
 
   function onKeyDown(event, change, editor) {
+    inKeyDownBlock = true
     if (editor.props.readOnly) return true
 
     // When composing, we need to prevent all hotkeys from executing while
@@ -386,6 +418,20 @@ function BeforePlugin() {
     }
 
     debug('onKeyDown', { event })
+  }
+
+  /**
+   * On key down.
+   *
+   * @param {Event} event
+   * @param {Change} change
+   * @param {Editor} editor
+   */
+
+  function onKeyUp(event, change, editor) {
+    inKeyDownBlock = false
+
+    debug('onKeyUp', { event })
   }
 
   /**
@@ -435,8 +481,9 @@ function BeforePlugin() {
     onBeforeInput,
     onBlur,
     onChange,
-    onCompositionEnd,
     onCompositionStart,
+    onCompositionUpdate,
+    onCompositionEnd,
     onCopy,
     onCut,
     onDragEnd,
@@ -449,6 +496,7 @@ function BeforePlugin() {
     onFocus,
     onInput,
     onKeyDown,
+    onKeyUp,
     onPaste,
     onSelect,
   }

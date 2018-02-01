@@ -8,6 +8,7 @@ import { Block, Inline, Text } from 'slate'
 
 import EVENT_HANDLERS from '../constants/event-handlers'
 import HOTKEYS from '../constants/hotkeys'
+import { IS_ANDROID } from '../constants/environment'
 import Content from '../components/content'
 import cloneFragment from '../utils/clone-fragment'
 import findDOMNode from '../utils/find-dom-node'
@@ -25,6 +26,7 @@ import setEventTransfer from '../utils/set-event-transfer'
  */
 
 const debug = Debug('slate:after')
+debug.enabled = true;
 
 /**
  * The after plugin.
@@ -333,6 +335,20 @@ function AfterPlugin() {
     // for browsers collapsing a single trailing new lines, so remove it.
     if (isLastText && isLastLeaf && lastChar == '\n') {
       textContent = textContent.slice(0, -1)
+    }
+
+    if (IS_ANDROID) {
+      const { compositionSelection, compositionData, inKeyDownBlock } = event
+      debug('onInput Data', { compositionSelection, compositionData, inKeyDownBlock })
+      if (event.inKeyDownBlock) {
+        const corrected = findRange(native, value)
+        change
+          .insertTextAtRange(compositionSelection, compositionData)
+          .select(corrected)
+      } else {
+        change.deleteBackward(1)
+      }
+      return
     }
 
     // If the text is no different, abort.
