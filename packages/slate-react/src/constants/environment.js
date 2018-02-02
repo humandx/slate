@@ -27,7 +27,8 @@ const BROWSER_RULES = [
  */
 
 const EVENT_RULES = [
-  ['beforeinput', el => 'onbeforeinput' in el]
+  ['beforeinput', el => 'onbeforeinput' in el],
+  ['input', el => 'input' in el]
 ]
 
 /**

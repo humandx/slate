@@ -103,6 +103,10 @@ class Content extends React.Component {
       this.element.addEventListener('beforeinput', this.onNativeBeforeInput)
     }
 
+    if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.input) {
+      this.element.addEventListener('input', this.onNativeInput)
+    }
+
     this.updateSelection()
 
     if (this.props.autoFocus) {
@@ -122,6 +126,10 @@ class Content extends React.Component {
     // COMPAT: Restrict scope of `beforeinput` to mobile.
     if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.beforeinput) {
       this.element.removeEventListener('beforeinput', this.onNativeBeforeInput)
+    }
+
+    if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.input) {
+      this.element.removeEventListener('input', this.onNativeInput)
     }
   }
 
@@ -392,6 +400,10 @@ class Content extends React.Component {
         change.select({ marks: null })
       }
     })
+  }
+
+  onNativeInput = (event) => {
+    debug('onNativeInput', { event })
   }
 
   /**

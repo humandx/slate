@@ -384,6 +384,8 @@ function BeforePlugin() {
     if (isComposing) return true
     if (change.value.isBlurred) return true
 
+    event.persist()
+
     event.inKeyDownBlock = inKeyDownBlock
     event.compositionSelection = compositionSelection
     event.compositionData = compositionData
