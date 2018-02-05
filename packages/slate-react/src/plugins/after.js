@@ -4,7 +4,7 @@ import Debug from 'debug'
 import Plain from 'slate-plain-serializer'
 import React from 'react'
 import getWindow from 'get-window'
-import { Block, Inline, Text } from 'slate'
+import { Block, Inline, Text, Range } from 'slate'
 
 import EVENT_HANDLERS from '../constants/event-handlers'
 import HOTKEYS from '../constants/hotkeys'
@@ -26,7 +26,7 @@ import setEventTransfer from '../utils/set-event-transfer'
  */
 
 const debug = Debug('slate:after')
-debug.enabled = true;
+debug.enabled = true
 
 /**
  * The after plugin.
@@ -48,7 +48,7 @@ function AfterPlugin() {
   function onBeforeInput(event, change, editor) {
     debug('onBeforeInput', { event })
 
-    event.preventDefault()
+    // event.preventDefault()
     change.insertText(event.data)
   }
 
@@ -317,6 +317,44 @@ function AfterPlugin() {
     let start = 0
     let end = 0
 
+    // Handle android composition events and deletions.
+    if (IS_ANDROID) {
+      const { compositionRange, compositionData } = editor.tmp._androidInputState
+      debug('onInput Data', { compositionRange, compositionData })
+      const currentSelection = findRange(native, value)
+      if (compositionData !== null) {
+        change
+          .insertTextAtRange(compositionRange, compositionData)
+          .select(currentSelection)
+        editor.tmp._androidInputState.compositionRange = currentSelection
+      } else {
+        // We delete the difference between the current native selection and the composition range.
+        const deletionRange = Range.create({
+          anchorKey: currentSelection.anchorKey,
+          anchorOffset: currentSelection.anchorOffset,
+          focusKey: compositionRange.focusKey,
+          focusOffset: compositionRange.focusOffset,
+        })
+        change
+          .deleteAtRange(deletionRange)
+          .select(currentSelection)
+        // Now update the compositionRange to contain the rest of the current word.
+        const targetKey = compositionRange.focusKey
+        const targetOffset = compositionRange.focusOffset
+        const targetNode = document.getDescendant(targetKey)
+        const endOfWordOffset = targetNode.text.slice(targetOffset).search(/\s|$/)
+        editor.tmp._androidInputState.compositionRange = Range.create({
+          anchorKey: currentSelection.anchorKey,
+          anchorOffset: currentSelection.anchorOffset,
+          focusKey: currentSelection.focusKey,
+          focusOffset: currentSelection.focusOffset + endOfWordOffset,
+        })
+      }
+      // We've dealt with the compositionData, so reset it to null.
+      editor.tmp._androidInputState.compositionData = null
+      return
+    }
+
     const leaf = leaves.find((r) => {
       start = end
       end += r.text.length
@@ -335,20 +373,6 @@ function AfterPlugin() {
     // for browsers collapsing a single trailing new lines, so remove it.
     if (isLastText && isLastLeaf && lastChar == '\n') {
       textContent = textContent.slice(0, -1)
-    }
-
-    if (IS_ANDROID) {
-      const { compositionSelection, compositionData, inKeyDownBlock } = event
-      debug('onInput Data', { compositionSelection, compositionData, inKeyDownBlock })
-      if (event.inKeyDownBlock) {
-        const corrected = findRange(native, value)
-        change
-          .insertTextAtRange(compositionSelection, compositionData)
-          .select(corrected)
-      } else {
-        change.deleteBackward(1)
-      }
-      return
     }
 
     // If the text is no different, abort.
@@ -420,22 +444,22 @@ function AfterPlugin() {
     // Chrome, the selection isn't properly extended. And in Firefox, the
     // selection isn't properly collapsed. (2017/10/17)
     if (HOTKEYS.COLLAPSE_LINE_BACKWARD(event)) {
-      event.preventDefault()
+      // event.preventDefault()
       return change.collapseLineBackward()
     }
 
     if (HOTKEYS.COLLAPSE_LINE_FORWARD(event)) {
-      event.preventDefault()
+      // event.preventDefault()
       return change.collapseLineForward()
     }
 
     if (HOTKEYS.EXTEND_LINE_BACKWARD(event)) {
-      event.preventDefault()
+      // event.preventDefault()
       return change.extendLineBackward()
     }
 
     if (HOTKEYS.EXTEND_LINE_FORWARD(event)) {
-      event.preventDefault()
+      // event.preventDefault()
       return change.extendLineForward()
     }
 
@@ -446,7 +470,7 @@ function AfterPlugin() {
       const { document, isInVoid, previousText, startText } = value
       const isPreviousInVoid = previousText && document.hasVoidParent(previousText.key)
       if (isInVoid || isPreviousInVoid || startText.text == '') {
-        event.preventDefault()
+        // event.preventDefault()
         return change.collapseCharBackward()
       }
     }
@@ -455,7 +479,7 @@ function AfterPlugin() {
       const { document, isInVoid, nextText, startText } = value
       const isNextInVoid = nextText && document.hasVoidParent(nextText.key)
       if (isInVoid || isNextInVoid || startText.text == '') {
-        event.preventDefault()
+        // event.preventDefault()
         return change.collapseCharForward()
       }
     }
@@ -464,7 +488,7 @@ function AfterPlugin() {
       const { document, isInVoid, previousText, startText } = value
       const isPreviousInVoid = previousText && document.hasVoidParent(previousText.key)
       if (isInVoid || isPreviousInVoid || startText.text == '') {
-        event.preventDefault()
+        // event.preventDefault()
         return change.extendCharBackward()
       }
     }
@@ -473,7 +497,7 @@ function AfterPlugin() {
       const { document, isInVoid, nextText, startText } = value
       const isNextInVoid = nextText && document.hasVoidParent(nextText.key)
       if (isInVoid || isNextInVoid || startText.text == '') {
-        event.preventDefault()
+        // event.preventDefault()
         return change.extendCharForward()
       }
     }

@@ -12,6 +12,7 @@ import PLUGINS_PROPS from '../constants/plugin-props'
 import AfterPlugin from '../plugins/after'
 import BeforePlugin from '../plugins/before'
 import noop from '../utils/noop'
+import { IS_ANDROID } from '../constants/environment'
 
 /**
  * Debug.
@@ -20,6 +21,7 @@ import noop from '../utils/noop'
  */
 
 const debug = Debug('slate:editor')
+debug.enabled = true
 
 /**
  * Editor.
@@ -79,6 +81,12 @@ class Editor extends React.Component {
     this.tmp = {}
     this.tmp.updates = 0
     this.tmp.resolves = 0
+    if (IS_ANDROID) {
+      this.tmp._androidInputState = {
+        compositionData: null,
+        compositionRange: null,
+      }
+    }
 
     // Resolve the plugins and create a stack and schema from them.
     const plugins = this.resolvePlugins(props.plugins, props.schema)
@@ -147,6 +155,23 @@ class Editor extends React.Component {
 
   componentDidMount = () => {
     this.flushChange()
+
+    const events = [
+      'beforeinput',
+      'compositionend',
+      'compositionstart',
+      'compositionupdate',
+      'keydown',
+      'keypress',
+      'keyup',
+      'input',
+      'textInput'
+    ]
+    events.forEach((eventName) => {
+      window.addEventListener(eventName, (e) => {
+        debug(`editor: ${eventName}`, { eventName, e })
+      })
+    })
   }
 
   /**

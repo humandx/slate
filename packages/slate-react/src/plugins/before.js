@@ -20,7 +20,7 @@ import findRange from '../utils/find-range'
  */
 
 const debug = Debug('slate:before')
-debug.enabled = true;
+debug.enabled = true
 
 /**
  * The core before plugin.
@@ -31,10 +31,7 @@ debug.enabled = true;
 function BeforePlugin() {
   let activeElement = null
   let compositionCount = 0
-  let compositionSelection = null
-  let compositionData = ""
   let isComposing = false
-  let inKeyDownBlock = false
   let isCopying = false
   let isDragging = false
 
@@ -48,6 +45,7 @@ function BeforePlugin() {
 
   function onBeforeInput(event, change, editor) {
     if (editor.props.readOnly) return true
+    return true // TO Remove
 
     // COMPAT: React's `onBeforeInput` synthetic event is based on the native
     // `keypress` and `textInput` events. In browsers that support the native
@@ -140,10 +138,12 @@ function BeforePlugin() {
 
   function onCompositionStart(event, change, editor) {
     isComposing = true
-    const window = getWindow(event.target)
-    compositionSelection = findRange(window.getSelection(), change.value)
-    compositionData = event.data
     compositionCount++
+    if (IS_ANDROID) {
+      const window = getWindow(event.target)
+      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
+      editor.tmp._androidInputState.compositionData = event.data
+    }
 
     // HACK: we need to re-render the editor here so that it will update its
     // placeholder in case one is currently rendered. This should be handled
@@ -162,9 +162,11 @@ function BeforePlugin() {
    */
 
   function onCompositionUpdate(event, change, editor) {
-    const window = getWindow(event.target)
-    compositionSelection = findRange(window.getSelection(), change.value)
-    compositionData = event.data
+    if (IS_ANDROID) {
+      const window = getWindow(event.target)
+      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
+      editor.tmp._androidInputState.compositionData = event.data
+    }
 
     debug('onCompositionUpdate', { event })
   }
@@ -178,9 +180,11 @@ function BeforePlugin() {
    */
 
   function onCompositionEnd(event, change, editor) {
-    const window = getWindow(event.target)
-    compositionSelection = findRange(window.getSelection(), change.value)
-    compositionData = event.data
+    if (IS_ANDROID) {
+      const window = getWindow(event.target)
+      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
+      editor.tmp._androidInputState.compositionData = null
+    }
     const n = compositionCount
 
     // The `count` check here ensures that if another composition starts
@@ -297,7 +301,7 @@ function BeforePlugin() {
     // When the target is editable, dropping is already allowed by
     // default, and calling `preventDefault` hides the cursor.
     const node = findNode(event.target, editor.value)
-    if (node.isVoid) event.preventDefault()
+    // if (node.isVoid) event.preventDefault()
 
     // If a drag is already in progress, don't do this again.
     if (isDragging) return true
@@ -338,7 +342,7 @@ function BeforePlugin() {
     if (editor.props.readOnly) return true
 
     // Prevent default so the DOM's value isn't corrupted.
-    event.preventDefault()
+    // event.preventDefault()
 
     debug('onDrop', { event })
   }
@@ -381,12 +385,8 @@ function BeforePlugin() {
    */
 
   function onInput(event, change, editor) {
-    if (isComposing) return true
+    if (isComposing && !IS_ANDROID) return true
     if (change.value.isBlurred) return true
-
-    event.inKeyDownBlock = inKeyDownBlock
-    event.compositionSelection = compositionSelection
-    event.compositionData = compositionData
 
     debug('onInput', { event })
   }
@@ -400,38 +400,28 @@ function BeforePlugin() {
    */
 
   function onKeyDown(event, change, editor) {
-    inKeyDownBlock = true
+    if (IS_ANDROID) {
+      const window = getWindow(event.target)
+      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
+      editor.tmp._androidInputState.compositionData = null
+    }
     if (editor.props.readOnly) return true
 
     // When composing, we need to prevent all hotkeys from executing while
     // typing. However, certain characters also move the selection before
     // we're able to handle it, so prevent their default behavior.
     if (isComposing) {
-      if (HOTKEYS.COMPOSING(event)) event.preventDefault()
-      return true
+      // if (HOTKEYS.COMPOSING(event)) event.preventDefault()
+      // return true
     }
 
     // Certain hotkeys have native behavior in contenteditable elements which
     // will cause our value to be out of sync, so prevent them.
     if (HOTKEYS.CONTENTEDITABLE(event)) {
-      event.preventDefault()
+      // event.preventDefault()
     }
 
     debug('onKeyDown', { event })
-  }
-
-  /**
-   * On key down.
-   *
-   * @param {Event} event
-   * @param {Change} change
-   * @param {Editor} editor
-   */
-
-  function onKeyUp(event, change, editor) {
-    inKeyDownBlock = false
-
-    debug('onKeyUp', { event })
   }
 
   /**
@@ -446,7 +436,7 @@ function BeforePlugin() {
     if (editor.props.readOnly) return true
 
     // Prevent defaults so the DOM state isn't corrupted.
-    event.preventDefault()
+    // event.preventDefault()
 
     debug('onPaste', { event })
   }
@@ -496,7 +486,6 @@ function BeforePlugin() {
     onFocus,
     onInput,
     onKeyDown,
-    onKeyUp,
     onPaste,
     onSelect,
   }

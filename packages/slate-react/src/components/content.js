@@ -17,6 +17,7 @@ import {
   IS_ANDROID,
   SUPPORTED_EVENTS
 } from '../constants/environment'
+import { findDOMNode } from 'react-dom'
 
 /**
  * Debug.
@@ -25,6 +26,7 @@ import {
  */
 
 const debug = Debug('slate:content')
+debug.enabled = true
 
 /**
  * Content.
@@ -98,9 +100,31 @@ class Content extends React.Component {
 
     window.document.addEventListener('selectionchange', this.onNativeSelectionChange)
 
+    // const events = [
+    //   'beforeinput',
+    //   'compositionend',
+    //   'compositionstart',
+    //   'compositionupdate',
+    //   'keydown',
+    //   'keypress',
+    //   'keyup',
+    //   'input',
+    //   'textInput'
+    // ]
+    // events.forEach((eventName) => {
+    //   window.addEventListener(eventName, (e) => {
+    //     debug(`content: ${eventName}`, { eventName, e })
+    //   })
+    // })
+
     // COMPAT: Restrict scope of `beforeinput` to mobile.
     if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.beforeinput) {
       this.element.addEventListener('beforeinput', this.onNativeBeforeInput)
+    }
+
+    // COMPAT: Restrict scope of `textInput` to android.
+    if ((IS_ANDROID)) {
+      window.addEventListener('textInput', this.onNativeTextInput)
     }
 
     this.updateSelection()
@@ -122,6 +146,11 @@ class Content extends React.Component {
     // COMPAT: Restrict scope of `beforeinput` to mobile.
     if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.beforeinput) {
       this.element.removeEventListener('beforeinput', this.onNativeBeforeInput)
+    }
+
+    // COMPAT: Restrict scope of `textInput` to android.
+    if ((IS_ANDROID)) {
+      window.removeEventListener('textInput', this.onNativeTextInput)
     }
   }
 
@@ -410,8 +439,32 @@ class Content extends React.Component {
     const { activeElement } = window.document
     if (activeElement !== this.element) return
 
+    if (IS_ANDROID) {
+      const { editor } = this.props
+      const { value } = editor
+      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), value)
+    }
+
     this.props.onSelect(event)
   }, 100)
+
+  /**
+   * On native textInput.
+   *
+   * @param {Event} event
+   */
+
+  onNativeTextInput = (event) => {
+    if (IS_ANDROID) {
+      const { editor } = this.props
+      const { value } = editor
+      const window = getWindow(event.target)
+      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), value)
+      editor.tmp._androidInputState.compositionData = event.data
+    }
+
+    debug('onNativeTextInput', { event })
+  }
 
   /**
    * Render the editor content.
