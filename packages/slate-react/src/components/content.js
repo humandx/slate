@@ -103,8 +103,8 @@ class Content extends React.Component {
       this.element.addEventListener('beforeinput', this.onNativeBeforeInput)
     }
 
-    if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.input) {
-      this.element.addEventListener('input', this.onNativeInput)
+    if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.textInput) {
+      this.element.addEventListener('textInput', this.onNativeTextInput)
     }
 
     this.updateSelection()
@@ -128,8 +128,8 @@ class Content extends React.Component {
       this.element.removeEventListener('beforeinput', this.onNativeBeforeInput)
     }
 
-    if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.input) {
-      this.element.removeEventListener('input', this.onNativeInput)
+    if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.textInput) {
+      this.element.removeEventListener('textInput', this.onNativeTextInput)
     }
   }
 
@@ -341,6 +341,7 @@ class Content extends React.Component {
       handler == 'onBeforeInput' ||
       handler == 'onBlur' ||
       handler == 'onCompositionEnd' ||
+      handler == 'onCompositionUpdate' ||
       handler == 'onCompositionStart' ||
       handler == 'onCopy' ||
       handler == 'onCut' ||
@@ -402,8 +403,11 @@ class Content extends React.Component {
     })
   }
 
-  onNativeInput = (event) => {
-    debug('onNativeInput', { event })
+  onNativeTextInput = (event) => {
+    debug('onNativeTextInput', { event })
+
+    // FIXME: Should pass to plugins with 'onTextInput' handle
+    this.onEvent('onCompositionUpdate', event)
   }
 
   /**

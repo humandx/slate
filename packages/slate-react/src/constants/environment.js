@@ -27,8 +27,7 @@ const BROWSER_RULES = [
  */
 
 const EVENT_RULES = [
-  ['beforeinput', el => 'onbeforeinput' in el],
-  ['input', el => 'input' in el]
+  ['beforeinput', el => 'onbeforeinput' in el]
 ]
 
 /**
@@ -50,7 +49,9 @@ const OS_RULES = [
  */
 
 let BROWSER
-const EVENTS = {}
+const EVENTS = {
+  'textInput': true
+}
 let OS
 
 /**
