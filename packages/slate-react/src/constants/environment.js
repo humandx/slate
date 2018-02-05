@@ -50,7 +50,8 @@ const OS_RULES = [
 
 let BROWSER
 const EVENTS = {
-  'textInput': true
+  'textInput': true,
+  'input': true
 }
 let OS
 
