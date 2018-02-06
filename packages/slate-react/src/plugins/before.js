@@ -1,6 +1,5 @@
 
 import Debug from 'debug'
-import getWindow from 'get-window'
 import { findDOMNode } from 'react-dom'
 
 import HOTKEYS from '../constants/hotkeys'
@@ -11,7 +10,7 @@ import {
   SUPPORTED_EVENTS
 } from '../constants/environment'
 import findNode from '../utils/find-node'
-import findRange from '../utils/find-range'
+import { isSyntheticInternalSlate, updateCompositionData } from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -21,6 +20,7 @@ import findRange from '../utils/find-range'
 
 const debug = Debug('slate:before')
 debug.enabled = true
+
 
 /**
  * The core before plugin.
@@ -140,9 +140,7 @@ function BeforePlugin() {
     isComposing = true
     compositionCount++
     if (IS_ANDROID) {
-      const window = getWindow(event.target)
-      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
-      editor.tmp._androidInputState.compositionData = event.data
+      updateCompositionData(event, change, editor)
     }
 
     // HACK: we need to re-render the editor here so that it will update its
@@ -163,9 +161,7 @@ function BeforePlugin() {
 
   function onCompositionUpdate(event, change, editor) {
     if (IS_ANDROID) {
-      const window = getWindow(event.target)
-      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
-      editor.tmp._androidInputState.compositionData = event.data
+      updateCompositionData(event, change, editor)
     }
 
     debug('onCompositionUpdate', { event })
@@ -181,9 +177,7 @@ function BeforePlugin() {
 
   function onCompositionEnd(event, change, editor) {
     if (IS_ANDROID) {
-      const window = getWindow(event.target)
-      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
-      editor.tmp._androidInputState.compositionData = null
+      updateCompositionData(event, change, editor, null)
     }
     const n = compositionCount
 
@@ -401,9 +395,12 @@ function BeforePlugin() {
 
   function onKeyDown(event, change, editor) {
     if (IS_ANDROID) {
-      const window = getWindow(event.target)
-      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
-      editor.tmp._androidInputState.compositionData = null
+      updateCompositionData(event, change, editor, null)
+
+      if (HOTKEYS.SPLIT_BLOCK(event) && !isSyntheticInternalSlate(event)) {
+        // only process synthetic split block events so that the logic is consistent across android API's.
+        return true
+      }
     }
     if (editor.props.readOnly) return true
 
@@ -422,6 +419,7 @@ function BeforePlugin() {
     }
 
     debug('onKeyDown', { event })
+    debug('onKeyDown', { code: event.code, data: event.data, key: event.key })
   }
 
   /**

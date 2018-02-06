@@ -85,6 +85,7 @@ class Editor extends React.Component {
       this.tmp._androidInputState = {
         compositionData: null,
         compositionRange: null,
+        compositionDocument: null
       }
     }
 
@@ -291,6 +292,14 @@ class Editor extends React.Component {
 
   onChange = (change) => {
     debug('onChange', { change })
+    debug('onChange operations', { operations: change.operations.toJS() })
+    debug('onChange operations', { value: change.value.toJS() })
+    debug('onChange operations', { text: change.value.document.text })
+    const hasEnterSuffixRegExp = /(\r|\n)/
+    debug('onChange operations', {
+      enter: hasEnterSuffixRegExp.test(change.value.document.text),
+      codes: change.value.document.text.split('').map(x => x.charCodeAt(0))
+    })
 
     this.stack.run('onChange', change, this)
     const { value } = change

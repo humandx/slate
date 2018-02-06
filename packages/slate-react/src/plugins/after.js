@@ -18,6 +18,7 @@ import findRange from '../utils/find-range'
 import getEventRange from '../utils/get-event-range'
 import getEventTransfer from '../utils/get-event-transfer'
 import setEventTransfer from '../utils/set-event-transfer'
+import { isSyntheticInternalSlate, triggerSyntheticInternalSlateEvent } from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -323,10 +324,30 @@ function AfterPlugin() {
       debug('onInput Data', { compositionRange, compositionData })
       const currentSelection = findRange(native, value)
       if (compositionData !== null) {
+        const nonEnterPrefixRegExp = /[^\r\n]*/
+        const getNonEnterPrefix = str => nonEnterPrefixRegExp.exec(str)[0]
+        const nonEnterPrefix = getNonEnterPrefix(compositionData)
+        debug('onInput Stripped Data', [nonEnterPrefix])
+        debug('onInput Stripped Data', nonEnterPrefix.split('').map(x => x.charCodeAt(0)))
+        const hasEnterSuffixRegExp = /(\r|\n)/
         change
-          .insertTextAtRange(compositionRange, compositionData)
+          .insertTextAtRange(compositionRange, nonEnterPrefix)
           .select(currentSelection)
         editor.tmp._androidInputState.compositionRange = currentSelection
+        if (hasEnterSuffixRegExp.test(compositionData)) {
+          // adjust for the fact that we removed the "enter" from the text
+          change.move(nonEnterPrefix.length - compositionData.length);
+          const enterEvent = {
+            target: event.target,
+            type: 'keydown',
+            key: 'Enter',
+            altKey: false,
+            ctrlKey: false,
+            metaKey: false,
+            shiftKey: null
+          }
+          triggerSyntheticInternalSlateEvent(editor, change)(enterEvent)
+        }
       } else {
         // We delete the difference between the current native selection and the composition range.
         const deletionRange = Range.create({
@@ -403,6 +424,9 @@ function AfterPlugin() {
     const { value } = change
 
     if (HOTKEYS.SPLIT_BLOCK(event)) {
+      if (IS_ANDROID && !isSyntheticInternalSlate(event)) {
+        return true
+      }
       return value.isInVoid
         ? change.collapseToStartOfNextText()
         : change.splitBlock()
