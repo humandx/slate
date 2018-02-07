@@ -19,7 +19,7 @@ import getEventRange from '../utils/get-event-range'
 import getEventTransfer from '../utils/get-event-transfer'
 import setEventTransfer from '../utils/set-event-transfer'
 import {
-  isCompositionDataValid, isSyntheticInternalSlate,
+  isCompositionDataValid, isSyntheticInternalSlate, setCompositionState,
   triggerSyntheticInternalSlateEvent,
 } from '../utils/android-helpers'
 
@@ -335,6 +335,7 @@ function AfterPlugin() {
       const { compositionRange, compositionData } = editor.tmp._androidInputState
       debug('onInput Data', { compositionRange, compositionData })
       const currentSelection = findRange(native, value)
+      let nextCompositionRange = currentSelection
       if (compositionData !== null) {
         const nonEnterPrefixRegExp = /[^\r\n]*/
         const getNonEnterPrefix = str => nonEnterPrefixRegExp.exec(str)[0]
@@ -345,7 +346,6 @@ function AfterPlugin() {
         change
           .insertTextAtRange(compositionRange, nonEnterPrefix)
           .select(currentSelection)
-        editor.tmp._androidInputState.compositionRange = currentSelection
         if (hasEnterSuffixRegExp.test(compositionData)) {
           // adjust for the fact that we removed the "enter" from the text
           change.move(nonEnterPrefix.length - compositionData.length)
@@ -363,6 +363,8 @@ function AfterPlugin() {
           // Otherwise, there are conflicts between the updates.
           // event.preventDefault()
         }
+        // Update the composition state
+        nextCompositionRange = change.value.selection
       } else {
         // We delete the difference between the current native selection and the composition range.
         const deletionRange = Range.create({
@@ -379,16 +381,15 @@ function AfterPlugin() {
         const targetOffset = compositionRange.focusOffset
         const targetNode = document.getDescendant(targetKey)
         const endOfWordOffset = targetNode.text.slice(targetOffset).search(/\s|$/)
-        editor.tmp._androidInputState.compositionRange = Range.create({
+        nextCompositionRange = Range.create({
           anchorKey: currentSelection.anchorKey,
           anchorOffset: currentSelection.anchorOffset,
           focusKey: currentSelection.focusKey,
           focusOffset: currentSelection.focusOffset + endOfWordOffset,
         })
       }
-      // We've dealt with the compositionData, so reset it to null.
-      editor.tmp._androidInputState.compositionData = null
-      editor.tmp._androidInputState.compositionDocument = change.value.document
+      // We've dealt with the compositionData, so reset it to null, and update the rest of the composition state.
+      setCompositionState(editor, nextCompositionRange, null, change.value.document)
       return
     }
 

@@ -14,11 +14,18 @@ export const triggerSyntheticInternalSlateEvent = (editor, change) => (event) =>
   // handler(event)
 }
 
+export const setCompositionState = (editor, compositionRange, compositionData, compositionDocument) => {
+  editor.tmp._androidInputState.compositionRange = compositionRange
+  editor.tmp._androidInputState.compositionDocument = compositionDocument
+  editor.tmp._androidInputState.compositionData = compositionData
+}
+
 export const updateCompositionData = (event, change, editor, data) => {
   const window = getWindow(event.target)
-  editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), change.value)
-  editor.tmp._androidInputState.compositionDocument = change.value.document
-  editor.tmp._androidInputState.compositionData = data === undefined ? event.data : data
+  const compositionRange = findRange(window.getSelection(), change.value)
+  const compositionDocument = change.value.document
+  const compositionData = data === undefined ? event.data : data
+  setCompositionState(editor, compositionRange, compositionData, compositionDocument)
 }
 
 export const isCompositionDataValid = (change, editor) =>
