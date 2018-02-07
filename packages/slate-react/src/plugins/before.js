@@ -1,6 +1,7 @@
 
 import Debug from 'debug'
 import { findDOMNode } from 'react-dom'
+import getWindow from 'get-window'
 
 import HOTKEYS from '../constants/hotkeys'
 import {

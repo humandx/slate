@@ -18,7 +18,10 @@ import findRange from '../utils/find-range'
 import getEventRange from '../utils/get-event-range'
 import getEventTransfer from '../utils/get-event-transfer'
 import setEventTransfer from '../utils/set-event-transfer'
-import { isSyntheticInternalSlate, triggerSyntheticInternalSlateEvent } from '../utils/android-helpers'
+import {
+  isCompositionDataValid, isSyntheticInternalSlate,
+  triggerSyntheticInternalSlateEvent,
+} from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -320,6 +323,15 @@ function AfterPlugin() {
 
     // Handle android composition events and deletions.
     if (IS_ANDROID) {
+      if (!isCompositionDataValid(change, editor)) {
+        debug(
+          'Android composition data is invalid: the slate document value has changed between composition and input events',
+          {
+            currentDocument: change.value.document.toJS(),
+            compositionDocument: editor.tmp._androidInputState.compositionDocument.toJS()
+          })
+        return
+      }
       const { compositionRange, compositionData } = editor.tmp._androidInputState
       debug('onInput Data', { compositionRange, compositionData })
       const currentSelection = findRange(native, value)
@@ -336,7 +348,7 @@ function AfterPlugin() {
         editor.tmp._androidInputState.compositionRange = currentSelection
         if (hasEnterSuffixRegExp.test(compositionData)) {
           // adjust for the fact that we removed the "enter" from the text
-          change.move(nonEnterPrefix.length - compositionData.length);
+          change.move(nonEnterPrefix.length - compositionData.length)
           const enterEvent = {
             target: event.target,
             type: 'keydown',
@@ -347,6 +359,9 @@ function AfterPlugin() {
             shiftKey: null
           }
           triggerSyntheticInternalSlateEvent(editor, change)(enterEvent)
+          // We prevent the default event so that the DOM is updated by slate rather than directly by android.
+          // Otherwise, there are conflicts between the updates.
+          // event.preventDefault()
         }
       } else {
         // We delete the difference between the current native selection and the composition range.
@@ -373,6 +388,7 @@ function AfterPlugin() {
       }
       // We've dealt with the compositionData, so reset it to null.
       editor.tmp._androidInputState.compositionData = null
+      editor.tmp._androidInputState.compositionDocument = change.value.document
       return
     }
 
