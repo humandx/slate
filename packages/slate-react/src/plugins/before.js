@@ -383,6 +383,7 @@ function BeforePlugin() {
     if (isComposing && !IS_ANDROID) return true
     if (change.value.isBlurred) return true
 
+    if (IS_ANDROID) event.preventDefault()
     debug('onInput', { event })
   }
 

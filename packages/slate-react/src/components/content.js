@@ -18,6 +18,7 @@ import {
   SUPPORTED_EVENTS
 } from '../constants/environment'
 import { findDOMNode } from 'react-dom'
+import { setCompositionState } from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -127,6 +128,11 @@ class Content extends React.Component {
       window.addEventListener('textInput', this.onNativeTextInput)
     }
 
+    // COMPAT: Restrict scope of `input` to android.
+    if ((IS_ANDROID)) {
+      window.addEventListener('input', this.onNativeInput)
+    }
+
     this.updateSelection()
 
     if (this.props.autoFocus) {
@@ -151,6 +157,11 @@ class Content extends React.Component {
     // COMPAT: Restrict scope of `textInput` to android.
     if ((IS_ANDROID)) {
       window.removeEventListener('textInput', this.onNativeTextInput)
+    }
+
+    // COMPAT: Restrict scope of `input` to android.
+    if ((IS_ANDROID)) {
+      window.removeEventListener('input', this.onNativeInput)
     }
   }
 
@@ -442,6 +453,7 @@ class Content extends React.Component {
     if (IS_ANDROID) {
       const { editor } = this.props
       const { value } = editor
+      // TO DO: Consolidate these composition state updates.
       editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), value)
     }
 
@@ -459,11 +471,26 @@ class Content extends React.Component {
       const { editor } = this.props
       const { value } = editor
       const window = getWindow(event.target)
-      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), value)
-      editor.tmp._androidInputState.compositionData = event.data
+      const compositionRange = findRange(window.getSelection(), value)
+      const compositionData = event.data
+      setCompositionState(editor, compositionRange, compositionData, value.document)
     }
 
     debug('onNativeTextInput', { event })
+  }
+
+  /**
+   * On native input.
+   *
+   * @param {Event} event
+   */
+
+  onNativeInput = (event) => {
+    if (IS_ANDROID) {
+      event.preventDefault()
+    }
+
+    debug('onNativeInput', { event })
   }
 
   /**
