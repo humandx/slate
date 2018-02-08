@@ -337,7 +337,7 @@ function BeforePlugin() {
     if (editor.props.readOnly) return true
 
     // Prevent default so the DOM's value isn't corrupted.
-    // event.preventDefault()
+    event.preventDefault()
 
     debug('onDrop', { event })
   }
@@ -417,7 +417,7 @@ function BeforePlugin() {
     // Certain hotkeys have native behavior in contenteditable elements which
     // will cause our value to be out of sync, so prevent them.
     if (HOTKEYS.CONTENTEDITABLE(event)) {
-      // event.preventDefault()
+      event.preventDefault()
     }
 
     debug('onKeyDown', { event })
@@ -436,7 +436,7 @@ function BeforePlugin() {
     if (editor.props.readOnly) return true
 
     // Prevent defaults so the DOM state isn't corrupted.
-    // event.preventDefault()
+    event.preventDefault()
 
     debug('onPaste', { event })
   }

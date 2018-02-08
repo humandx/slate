@@ -101,22 +101,89 @@ class Content extends React.Component {
 
     window.document.addEventListener('selectionchange', this.onNativeSelectionChange)
 
-    // const events = [
-    //   'beforeinput',
-    //   'compositionend',
-    //   'compositionstart',
-    //   'compositionupdate',
-    //   'keydown',
-    //   'keypress',
-    //   'keyup',
-    //   'input',
-    //   'textInput'
-    // ]
-    // events.forEach((eventName) => {
-    //   window.addEventListener(eventName, (e) => {
-    //     debug(`content: ${eventName}`, { eventName, e })
-    //   })
-    // })
+    const events = [
+      'abort',
+      'blur',
+      'cancel',
+      'canplay',
+      'canplaythrough',
+      'change',
+      'click',
+      'close',
+      'contextmenu',
+      'cuechange',
+      'dblclick',
+      'drag',
+      'dragend',
+      'dragenter',
+      'dragleave',
+      'dragover',
+      'dragstart',
+      'drop',
+      'durationchange',
+      'emptied',
+      'ended',
+      'error',
+      'focus',
+      'input',
+      'invalid',
+      'keydown',
+      'keypress',
+      'keyup',
+      'load',
+      'loadeddata',
+      'loadedmetadata',
+      'loadstart',
+      'mousedown',
+      'mouseenter',
+      'mouseleave',
+      'mousemove',
+      'mouseout',
+      'mouseover',
+      'mouseup',
+      'mousewheel',
+      'pause',
+      'play',
+      'playing',
+      'progress',
+      'ratechange',
+      'reset',
+      'resize',
+      'scroll',
+      'seeked',
+      'seeking',
+      'select',
+      'show',
+      'stalled',
+      'submit',
+      'suspend',
+      'timeupdate',
+      'toggle',
+      'volumechange',
+      'waiting',
+      'autocomplete',
+      'autocompleteerror',
+      'touchcancel',
+      'touchend',
+      'touchmove',
+      'touchstart',
+      'beforecopy',
+      'beforecut',
+      'beforepaste',
+      'copy',
+      'cut',
+      'paste',
+      'search',
+      'selectstart',
+      'wheel',
+      'webkitfullscreenchange',
+      'webkitfullscreenerror'
+    ]
+    events.forEach((eventName) => {
+      window.addEventListener(eventName, (e) => {
+        debug(`content: ${eventName}`, { eventName, e })
+      })
+    })
 
     // COMPAT: Restrict scope of `beforeinput` to mobile.
     if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.beforeinput) {
@@ -317,7 +384,7 @@ class Content extends React.Component {
 
     // COMPAT: Composition events can change the DOM out of under React, so we
     // increment this key to ensure that a full re-render happens. (2017/10/16)
-    if (handler == 'onCompositionEnd') {
+    if (handler == 'onCompositionEnd' || handler == 'onCompositionUpdate' || handler == 'onTextInput') {
       this.tmp.key++
     }
 
@@ -374,10 +441,12 @@ class Content extends React.Component {
       handler == 'onBlur' ||
       handler == 'onCompositionEnd' ||
       handler == 'onCompositionStart' ||
+      handler == 'onCompositionUpdate' ||
       handler == 'onCopy' ||
       handler == 'onCut' ||
       handler == 'onFocus' ||
       handler == 'onInput' ||
+      handler == 'onTextInput' ||
       handler == 'onKeyDown' ||
       handler == 'onKeyUp' ||
       handler == 'onPaste' ||
@@ -552,6 +621,7 @@ class Content extends React.Component {
         onFocus={this.onFocus}
         onCompositionEnd={this.onCompositionEnd}
         onCompositionStart={this.onCompositionStart}
+        onCompositionUpdate={this.onCompositionUpdate}
         onCopy={this.onCopy}
         onCut={this.onCut}
         onDragEnd={this.onDragEnd}

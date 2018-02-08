@@ -52,7 +52,7 @@ function AfterPlugin() {
   function onBeforeInput(event, change, editor) {
     debug('onBeforeInput', { event })
 
-    // event.preventDefault()
+    event.preventDefault()
     change.insertText(event.data)
   }
 
@@ -323,12 +323,14 @@ function AfterPlugin() {
 
     // Handle android composition events and deletions.
     if (IS_ANDROID) {
+      editor.forceUpdate()
       if (!isCompositionDataValid(change, editor)) {
+        const { compositionDocument } = editor.tmp._androidInputState
         debug(
           'Android composition data is invalid: the slate document value has changed between composition and input events',
           {
             currentDocument: change.value.document.toJS(),
-            compositionDocument: editor.tmp._androidInputState.compositionDocument.toJS()
+            compositionDocument: compositionDocument === null ? 'null' : compositionDocument.toJS()
           })
         return
       }
@@ -344,8 +346,12 @@ function AfterPlugin() {
         debug('onInput Stripped Data', nonEnterPrefix.split('').map(x => x.charCodeAt(0)))
         const hasEnterSuffixRegExp = /(\r|\n)/
         change
-          .insertTextAtRange(compositionRange, nonEnterPrefix)
-          .select(currentSelection)
+          .deleteAtRange(compositionRange)
+          // The following method is broken, skipping it will usually work, since we are likely
+          // to be at that anchor key. Todo: check that we are at that anchor key.
+          // .moveToRangeOf(compositionRange.anchorKey)
+          .moveOffsetsTo(compositionRange.anchorOffset)
+          .insertText(nonEnterPrefix)
         if (hasEnterSuffixRegExp.test(compositionData)) {
           // adjust for the fact that we removed the "enter" from the text
           change.move(nonEnterPrefix.length - compositionData.length)
@@ -485,22 +491,22 @@ function AfterPlugin() {
     // Chrome, the selection isn't properly extended. And in Firefox, the
     // selection isn't properly collapsed. (2017/10/17)
     if (HOTKEYS.COLLAPSE_LINE_BACKWARD(event)) {
-      // event.preventDefault()
+      event.preventDefault()
       return change.collapseLineBackward()
     }
 
     if (HOTKEYS.COLLAPSE_LINE_FORWARD(event)) {
-      // event.preventDefault()
+      event.preventDefault()
       return change.collapseLineForward()
     }
 
     if (HOTKEYS.EXTEND_LINE_BACKWARD(event)) {
-      // event.preventDefault()
+      event.preventDefault()
       return change.extendLineBackward()
     }
 
     if (HOTKEYS.EXTEND_LINE_FORWARD(event)) {
-      // event.preventDefault()
+      event.preventDefault()
       return change.extendLineForward()
     }
 
@@ -511,7 +517,7 @@ function AfterPlugin() {
       const { document, isInVoid, previousText, startText } = value
       const isPreviousInVoid = previousText && document.hasVoidParent(previousText.key)
       if (isInVoid || isPreviousInVoid || startText.text == '') {
-        // event.preventDefault()
+        event.preventDefault()
         return change.collapseCharBackward()
       }
     }
@@ -520,7 +526,7 @@ function AfterPlugin() {
       const { document, isInVoid, nextText, startText } = value
       const isNextInVoid = nextText && document.hasVoidParent(nextText.key)
       if (isInVoid || isNextInVoid || startText.text == '') {
-        // event.preventDefault()
+        event.preventDefault()
         return change.collapseCharForward()
       }
     }
@@ -529,7 +535,7 @@ function AfterPlugin() {
       const { document, isInVoid, previousText, startText } = value
       const isPreviousInVoid = previousText && document.hasVoidParent(previousText.key)
       if (isInVoid || isPreviousInVoid || startText.text == '') {
-        // event.preventDefault()
+        event.preventDefault()
         return change.extendCharBackward()
       }
     }
@@ -538,7 +544,7 @@ function AfterPlugin() {
       const { document, isInVoid, nextText, startText } = value
       const isNextInVoid = nextText && document.hasVoidParent(nextText.key)
       if (isInVoid || isNextInVoid || startText.text == '') {
-        // event.preventDefault()
+        event.preventDefault()
         return change.extendCharForward()
       }
     }

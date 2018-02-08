@@ -81,13 +81,6 @@ class Editor extends React.Component {
     this.tmp = {}
     this.tmp.updates = 0
     this.tmp.resolves = 0
-    if (IS_ANDROID) {
-      this.tmp._androidInputState = {
-        compositionData: null,
-        compositionRange: null,
-        compositionDocument: null
-      }
-    }
 
     // Resolve the plugins and create a stack and schema from them.
     const plugins = this.resolvePlugins(props.plugins, props.schema)
@@ -102,6 +95,14 @@ class Editor extends React.Component {
     stack.run('onChange', change, this)
     this.queueChange(change)
     this.state.value = change.value
+
+    if (IS_ANDROID) {
+      this.tmp._androidInputState = {
+        compositionData: null,
+        compositionRange: null,
+        compositionDocument: change.value.document
+      }
+    }
 
     // Create a bound event handler for each event.
     EVENT_HANDLERS.forEach((handler) => {
