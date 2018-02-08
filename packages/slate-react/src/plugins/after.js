@@ -323,7 +323,7 @@ function AfterPlugin() {
 
     // Handle android composition events and deletions.
     if (IS_ANDROID) {
-      editor.forceUpdate()
+      //editor.forceUpdate()
       if (!isCompositionDataValid(change, editor)) {
         const { compositionDocument } = editor.tmp._androidInputState
         debug(

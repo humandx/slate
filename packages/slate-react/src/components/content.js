@@ -384,7 +384,7 @@ class Content extends React.Component {
 
     // COMPAT: Composition events can change the DOM out of under React, so we
     // increment this key to ensure that a full re-render happens. (2017/10/16)
-    if (handler == 'onCompositionEnd' || handler == 'onCompositionUpdate' || handler == 'onTextInput' || handler == 'onInput') {
+    if (handler == 'onCompositionEnd' || (IS_ANDROID && handler == 'onInput')) {
       this.tmp.key++
     }
 
