@@ -151,6 +151,18 @@ class Editor extends React.Component {
     this.setState({ value: change.value })
   }
 
+  shouldComponentUpdate = (nextProps, nextState) => {
+    debug("shouldComponentUpdate", { nextProps })
+    /**
+     * Prevents unnecessary renders which messes with the swipe keyboard on
+     * Android.
+     */
+
+    if (this.value == nextState.value) { return false }
+    else { return true }
+  }
+
+
   /**
    * When the component first mounts, flush any temporary changes.
    */
