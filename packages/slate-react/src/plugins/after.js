@@ -305,21 +305,9 @@ function AfterPlugin() {
     const window = getWindow(event.target)
     const { value } = change
 
-    // Get the selection point.
+    // Get the selection and the document.
     const native = window.getSelection()
-    const { anchorNode, anchorOffset } = native
-    const point = findPoint(anchorNode, anchorOffset, value)
-    if (!point) return
-
-    // Get the text node and leaf in question.
     const { document, selection } = value
-    const node = document.getDescendant(point.key)
-    const block = document.getClosestBlock(node.key)
-    const leaves = node.getLeaves()
-    const lastText = block.getLastText()
-    const lastLeaf = leaves.last()
-    let start = 0
-    let end = 0
 
     // Handle android composition events and deletions.
     if (IS_ANDROID) {
@@ -336,7 +324,17 @@ function AfterPlugin() {
       }
       const { compositionRange, compositionData } = editor.tmp._androidInputState
       debug('onInput Data', { compositionRange, compositionData })
-      const currentSelection = findRange(native, value)
+      let currentSelection = findRange(native, value)
+      if (currentSelection === null) {
+        // currentSelection seems to be null when we just deleted the DOM node we had been
+        // focused on. We use compositionRange as a proxy:
+        currentSelection = Range.create({
+          anchorKey: compositionRange.anchorKey,
+          anchorOffset: 0,
+          focusKey: compositionRange.anchorKey,
+          focusOffset: 0,
+        })
+      }
       let nextCompositionRange = currentSelection
       if (compositionData !== null) {
         const nonEnterPrefixRegExp = /[^\r\n]*/
@@ -354,7 +352,7 @@ function AfterPlugin() {
           .insertText(nonEnterPrefix)
         if (hasEnterSuffixRegExp.test(compositionData)) {
           // adjust for the fact that we removed the "enter" from the text
-          change.move(nonEnterPrefix.length - compositionData.length)
+          // change.move(nonEnterPrefix.length - compositionData.length)
           const enterEvent = {
             target: event.target,
             type: 'keydown',
@@ -398,6 +396,21 @@ function AfterPlugin() {
       setCompositionState(editor, nextCompositionRange, null, change.value.document)
       return
     }
+
+    // Get the selection point.
+    const { anchorNode, anchorOffset } = native
+    const point = findPoint(anchorNode, anchorOffset, value)
+    if (!point) return
+
+    // Get the text node and leaf in question.
+    const node = document.getDescendant(point.key)
+    const block = document.getClosestBlock(node.key)
+    const leaves = node.getLeaves()
+    const lastText = block.getLastText()
+    const lastLeaf = leaves.last()
+    let start = 0
+    let end = 0
+
 
     const leaf = leaves.find((r) => {
       start = end

@@ -158,22 +158,22 @@ class Editor extends React.Component {
   componentDidMount = () => {
     this.flushChange()
 
-    const events = [
-      'beforeinput',
-      'compositionend',
-      'compositionstart',
-      'compositionupdate',
-      'keydown',
-      'keypress',
-      'keyup',
-      'input',
-      'textInput'
-    ]
-    events.forEach((eventName) => {
-      window.addEventListener(eventName, (e) => {
-        debug(`editor: ${eventName}`, { eventName, e })
-      })
-    })
+    // const events = [
+    //   'beforeinput',
+    //   'compositionend',
+    //   'compositionstart',
+    //   'compositionupdate',
+    //   'keydown',
+    //   'keypress',
+    //   'keyup',
+    //   'input',
+    //   'textInput'
+    // ]
+    // events.forEach((eventName) => {
+    //   window.addEventListener(eventName, (e) => {
+    //     debug(`editor: ${eventName}`, { eventName, e })
+    //   })
+    // })
   }
 
   /**

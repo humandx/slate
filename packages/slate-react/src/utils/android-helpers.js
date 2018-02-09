@@ -1,6 +1,17 @@
 import EVENT_HANDLERS from '../constants/event-handlers'
 import findRange from './find-range'
 import getWindow from 'get-window'
+import Debug from 'debug'
+
+/**
+ * Debug.
+ *
+ * @type {Function}
+ */
+
+const debug = Debug('slate:android-helpers')
+debug.enabled = true
+
 
 export const isSyntheticInternalSlate = event => event.synthetic === true
 
@@ -18,6 +29,7 @@ export const triggerSyntheticInternalSlateEvent = (editor, change) => (event) =>
 }
 
 export const setCompositionState = (editor, compositionRange, compositionData, compositionDocument) => {
+  debug('setCompositionState', { compositionRange, compositionData, compositionDocument })
   editor.tmp._androidInputState.compositionRange = compositionRange
   editor.tmp._androidInputState.compositionDocument = compositionDocument
   editor.tmp._androidInputState.compositionData = compositionData

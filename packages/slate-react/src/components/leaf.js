@@ -3,11 +3,8 @@ import Debug from 'debug'
 import React from 'react'
 import Types from 'prop-types'
 import SlateTypes from 'slate-prop-types'
-import getWindow from 'get-window'
 
 import OffsetKey from '../utils/offset-key'
-import { IS_ANDROID, IS_IOS } from '../constants/environment'
-import { findDOMNode } from 'react-dom'
 
 /**
  * Debugger.
@@ -16,7 +13,6 @@ import { findDOMNode } from 'react-dom'
  */
 
 const debug = Debug('slate:leaves')
-debug.enabled = true
 
 /**
  * Leaf.
@@ -25,6 +21,7 @@ debug.enabled = true
  */
 
 class Leaf extends React.Component {
+
   /**
    * Property types.
    *
@@ -52,94 +49,6 @@ class Leaf extends React.Component {
 
   debug = (message, ...args) => {
     debug(message, `${this.props.node.key}-${this.props.index}`, ...args)
-  }
-
-  componentDidMount = () => {
-    const domNode = findDOMNode(this)
-
-    const events = [
-      'abort',
-      'blur',
-      'cancel',
-      'canplay',
-      'canplaythrough',
-      'change',
-      'click',
-      'close',
-      'contextmenu',
-      'cuechange',
-      'dblclick',
-      'drag',
-      'dragend',
-      'dragenter',
-      'dragleave',
-      'dragover',
-      'dragstart',
-      'drop',
-      'durationchange',
-      'emptied',
-      'ended',
-      'error',
-      'focus',
-      'input',
-      'invalid',
-      'keydown',
-      'keypress',
-      'keyup',
-      'load',
-      'loadeddata',
-      'loadedmetadata',
-      'loadstart',
-      'mousedown',
-      'mouseenter',
-      'mouseleave',
-      'mousemove',
-      'mouseout',
-      'mouseover',
-      'mouseup',
-      'mousewheel',
-      'pause',
-      'play',
-      'playing',
-      'progress',
-      'ratechange',
-      'reset',
-      'resize',
-      'scroll',
-      'seeked',
-      'seeking',
-      'select',
-      'show',
-      'stalled',
-      'submit',
-      'suspend',
-      'timeupdate',
-      'toggle',
-      'volumechange',
-      'waiting',
-      'autocomplete',
-      'autocompleteerror',
-      'touchcancel',
-      'touchend',
-      'touchmove',
-      'touchstart',
-      'beforecopy',
-      'beforecut',
-      'beforepaste',
-      'copy',
-      'cut',
-      'paste',
-      'search',
-      'selectstart',
-      'wheel',
-      'webkitfullscreenchange',
-      'webkitfullscreenerror'
-    ]
-    events.forEach((eventName) => {
-      domNode.addEventListener(eventName, (e) => {
-        debug(`leaf: ${eventName}`, { eventName, e })
-      })
-    })
   }
 
   /**
@@ -180,7 +89,7 @@ class Leaf extends React.Component {
     })
 
     return (
-      <span data-offset-key={offsetKey} onInput={(e) => debug(`leaf: syntheticOnInput`, { e })}>
+      <span data-offset-key={offsetKey}>
         {this.renderMarks()}
       </span>
     )

@@ -101,89 +101,89 @@ class Content extends React.Component {
 
     window.document.addEventListener('selectionchange', this.onNativeSelectionChange)
 
-    const events = [
-      'abort',
-      'blur',
-      'cancel',
-      'canplay',
-      'canplaythrough',
-      'change',
-      'click',
-      'close',
-      'contextmenu',
-      'cuechange',
-      'dblclick',
-      'drag',
-      'dragend',
-      'dragenter',
-      'dragleave',
-      'dragover',
-      'dragstart',
-      'drop',
-      'durationchange',
-      'emptied',
-      'ended',
-      'error',
-      'focus',
-      'input',
-      'invalid',
-      'keydown',
-      'keypress',
-      'keyup',
-      'load',
-      'loadeddata',
-      'loadedmetadata',
-      'loadstart',
-      'mousedown',
-      'mouseenter',
-      'mouseleave',
-      'mousemove',
-      'mouseout',
-      'mouseover',
-      'mouseup',
-      'mousewheel',
-      'pause',
-      'play',
-      'playing',
-      'progress',
-      'ratechange',
-      'reset',
-      'resize',
-      'scroll',
-      'seeked',
-      'seeking',
-      'select',
-      'show',
-      'stalled',
-      'submit',
-      'suspend',
-      'timeupdate',
-      'toggle',
-      'volumechange',
-      'waiting',
-      'autocomplete',
-      'autocompleteerror',
-      'touchcancel',
-      'touchend',
-      'touchmove',
-      'touchstart',
-      'beforecopy',
-      'beforecut',
-      'beforepaste',
-      'copy',
-      'cut',
-      'paste',
-      'search',
-      'selectstart',
-      'wheel',
-      'webkitfullscreenchange',
-      'webkitfullscreenerror'
-    ]
-    events.forEach((eventName) => {
-      window.addEventListener(eventName, (e) => {
-        debug(`content: ${eventName}`, { eventName, e })
-      })
-    })
+    // const events = [
+    //   'abort',
+    //   'blur',
+    //   'cancel',
+    //   'canplay',
+    //   'canplaythrough',
+    //   'change',
+    //   'click',
+    //   'close',
+    //   'contextmenu',
+    //   'cuechange',
+    //   'dblclick',
+    //   'drag',
+    //   'dragend',
+    //   'dragenter',
+    //   'dragleave',
+    //   'dragover',
+    //   'dragstart',
+    //   'drop',
+    //   'durationchange',
+    //   'emptied',
+    //   'ended',
+    //   'error',
+    //   'focus',
+    //   'input',
+    //   'invalid',
+    //   'keydown',
+    //   'keypress',
+    //   'keyup',
+    //   'load',
+    //   'loadeddata',
+    //   'loadedmetadata',
+    //   'loadstart',
+    //   'mousedown',
+    //   'mouseenter',
+    //   'mouseleave',
+    //   'mousemove',
+    //   'mouseout',
+    //   'mouseover',
+    //   'mouseup',
+    //   'mousewheel',
+    //   'pause',
+    //   'play',
+    //   'playing',
+    //   'progress',
+    //   'ratechange',
+    //   'reset',
+    //   'resize',
+    //   'scroll',
+    //   'seeked',
+    //   'seeking',
+    //   'select',
+    //   'show',
+    //   'stalled',
+    //   'submit',
+    //   'suspend',
+    //   'timeupdate',
+    //   'toggle',
+    //   'volumechange',
+    //   'waiting',
+    //   'autocomplete',
+    //   'autocompleteerror',
+    //   'touchcancel',
+    //   'touchend',
+    //   'touchmove',
+    //   'touchstart',
+    //   'beforecopy',
+    //   'beforecut',
+    //   'beforepaste',
+    //   'copy',
+    //   'cut',
+    //   'paste',
+    //   'search',
+    //   'selectstart',
+    //   'wheel',
+    //   'webkitfullscreenchange',
+    //   'webkitfullscreenerror'
+    // ]
+    // events.forEach((eventName) => {
+    //   window.addEventListener(eventName, (e) => {
+    //     debug(`content: ${eventName}`, { eventName, e })
+    //   })
+    // })
 
     // COMPAT: Restrict scope of `beforeinput` to mobile.
     if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.beforeinput) {
@@ -195,10 +195,10 @@ class Content extends React.Component {
       window.addEventListener('textInput', this.onNativeTextInput)
     }
 
-    // COMPAT: Restrict scope of `input` to android.
-    if ((IS_ANDROID)) {
-      window.addEventListener('input', this.onNativeInput)
-    }
+    // // COMPAT: Restrict scope of `input` to android.
+    // if ((IS_ANDROID)) {
+    //   window.addEventListener('input', this.onNativeInput)
+    // }
 
     this.updateSelection()
 
@@ -226,10 +226,10 @@ class Content extends React.Component {
       window.removeEventListener('textInput', this.onNativeTextInput)
     }
 
-    // COMPAT: Restrict scope of `input` to android.
-    if ((IS_ANDROID)) {
-      window.removeEventListener('input', this.onNativeInput)
-    }
+    // // COMPAT: Restrict scope of `input` to android.
+    // if ((IS_ANDROID)) {
+    //   window.removeEventListener('input', this.onNativeInput)
+    // }
   }
 
   /**
