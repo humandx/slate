@@ -1,7 +1,6 @@
 import EVENT_HANDLERS from '../constants/event-handlers'
 import findRange from './find-range'
 import { Range } from 'slate'
-import getWindow from 'get-window'
 import Debug from 'debug'
 
 /**
@@ -101,7 +100,7 @@ export const safelyComputeCompositionRange = (event, change) => {
   return compositionRange
 }
 
-export const updateCompositionData = (event, change, editor, data) => {
+export const updateCompositionState = (event, change, editor, data) => {
   const compositionRange = safelyComputeCompositionRange(event, change)
   const compositionDocument = change.value.document
   const compositionData = data === undefined ? event.data : data
@@ -110,4 +109,6 @@ export const updateCompositionData = (event, change, editor, data) => {
 
 export const isCompositionDataValid = (change, editor) =>
   editor.tmp._androidInputState.compositionDocument === change.value.document
+
+export const getCompositionState = (editor) => editor.tmp._androidInputState
 

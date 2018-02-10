@@ -12,8 +12,10 @@ import {
 } from '../constants/environment'
 import findNode from '../utils/find-node'
 import {
-  isSyntheticInternalSlate, safelyComputeCompositionRange, setCompositionState,
-  updateCompositionData,
+  isSyntheticInternalSlate,
+  safelyComputeCompositionRange,
+  setCompositionState,
+  updateCompositionState,
 } from '../utils/android-helpers'
 
 /**
@@ -144,7 +146,7 @@ function BeforePlugin() {
     isComposing = true
     compositionCount++
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor)
+      updateCompositionState(event, change, editor)
     }
 
     // HACK: we need to re-render the editor here so that it will update its
@@ -165,7 +167,7 @@ function BeforePlugin() {
 
   function onCompositionUpdate(event, change, editor) {
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor)
+      updateCompositionState(event, change, editor)
     }
 
     debug('onCompositionUpdate', { event })
@@ -181,7 +183,7 @@ function BeforePlugin() {
 
   function onCompositionEnd(event, change, editor) {
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor, null)
+      updateCompositionState(event, change, editor, null)
     }
     const n = compositionCount
 
@@ -400,7 +402,7 @@ function BeforePlugin() {
 
   function onKeyDown(event, change, editor) {
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor, null)
+      updateCompositionState(event, change, editor, null)
 
       if (HOTKEYS.SPLIT_BLOCK(event) && !isSyntheticInternalSlate(event)) {
         // only process synthetic split block events so that the logic is consistent across android API's.

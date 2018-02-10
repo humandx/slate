@@ -1,10 +1,9 @@
-
 import Base64 from 'slate-base64-serializer'
 import Debug from 'debug'
 import Plain from 'slate-plain-serializer'
 import React from 'react'
 import getWindow from 'get-window'
-import { Block, Inline, Text, Range } from 'slate'
+import { Block, Inline, Range, Text } from 'slate'
 
 import EVENT_HANDLERS from '../constants/event-handlers'
 import HOTKEYS from '../constants/hotkeys'
@@ -19,7 +18,10 @@ import getEventRange from '../utils/get-event-range'
 import getEventTransfer from '../utils/get-event-transfer'
 import setEventTransfer from '../utils/set-event-transfer'
 import {
-  isCompositionDataValid, isSyntheticInternalSlate, safelyComputeCompositionRange, setCompositionState,
+  getCompositionState,
+  isCompositionDataValid,
+  isSyntheticInternalSlate,
+  setCompositionState,
   triggerSyntheticInternalSlateEvent,
 } from '../utils/android-helpers'
 
@@ -31,6 +33,8 @@ import {
 
 const debug = Debug('slate:after')
 debug.enabled = true
+
+
 
 /**
  * The after plugin.
@@ -313,7 +317,7 @@ function AfterPlugin() {
     if (IS_ANDROID) {
       // Start by checking whether the composition data is valid; if not: exit.
       if (!isCompositionDataValid(change, editor)) {
-        const { compositionDocument } = editor.tmp._androidInputState
+        const { compositionDocument } = getCompositionState(editor)
         debug(
           'Android composition data is invalid: the slate document value has changed between composition and input events',
           {
@@ -322,7 +326,7 @@ function AfterPlugin() {
           })
         return
       }
-      const { compositionRange, compositionData } = editor.tmp._androidInputState
+      const { compositionRange, compositionData } = getCompositionState(editor)
       debug('onInput Data', { compositionRange, compositionData })
       let currentSelection = findRange(native, value)
       if (currentSelection === null) {
