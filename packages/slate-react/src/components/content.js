@@ -522,8 +522,8 @@ class Content extends React.Component {
     if (IS_ANDROID) {
       const { editor } = this.props
       const { value } = editor
-      // TO DO: Consolidate these composition state updates.
-      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), value)
+      const compositionRange = safelyComputeCompositionRange(event, value.change())
+      setCompositionState(editor, compositionRange, null, value.document)
     }
 
     this.props.onSelect(event)

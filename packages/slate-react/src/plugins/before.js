@@ -11,7 +11,10 @@ import {
   SUPPORTED_EVENTS
 } from '../constants/environment'
 import findNode from '../utils/find-node'
-import { isSyntheticInternalSlate, updateCompositionData } from '../utils/android-helpers'
+import {
+  isSyntheticInternalSlate, safelyComputeCompositionRange, setCompositionState,
+  updateCompositionData,
+} from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -457,6 +460,12 @@ function BeforePlugin() {
     // Save the new `activeElement`.
     const window = getWindow(event.target)
     activeElement = window.document.activeElement
+
+    if (IS_ANDROID) {
+      const { value } = change
+      const compositionRange = safelyComputeCompositionRange(event, change)
+      setCompositionState(editor, compositionRange, null, value.document)
+    }
 
     debug('onSelect', { event })
   }

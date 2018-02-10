@@ -19,7 +19,7 @@ import getEventRange from '../utils/get-event-range'
 import getEventTransfer from '../utils/get-event-transfer'
 import setEventTransfer from '../utils/set-event-transfer'
 import {
-  isCompositionDataValid, isSyntheticInternalSlate, setCompositionState,
+  isCompositionDataValid, isSyntheticInternalSlate, safelyComputeCompositionRange, setCompositionState,
   triggerSyntheticInternalSlateEvent,
 } from '../utils/android-helpers'
 
@@ -311,7 +311,7 @@ function AfterPlugin() {
 
     // Handle android composition events and deletions.
     if (IS_ANDROID) {
-      //editor.forceUpdate()
+      // Start by checking whether the composition data is valid; if not: exit.
       if (!isCompositionDataValid(change, editor)) {
         const { compositionDocument } = editor.tmp._androidInputState
         debug(
@@ -336,12 +336,16 @@ function AfterPlugin() {
         })
       }
       let nextCompositionRange = currentSelection
+
+      // input events on Android are either text-insertion or deletion events;
+      // we determine which of these it is by looking at (compositionData == null)?
       if (compositionData !== null) {
+        // If compositionData is not null, we assume we are in a text-insertion input event:
         const nonEnterPrefixRegExp = /[^\r\n]*/
         const getNonEnterPrefix = str => nonEnterPrefixRegExp.exec(str)[0]
         const nonEnterPrefix = getNonEnterPrefix(compositionData)
         debug('onInput Stripped Data', [nonEnterPrefix])
-        debug('onInput Stripped Data', nonEnterPrefix.split('').map(x => x.charCodeAt(0)))
+        debug('onInput Stripped Data char codes', nonEnterPrefix.split('').map(x => x.charCodeAt(0)))
         const hasEnterSuffixRegExp = /(\r|\n)/
         change
           .deleteAtRange(compositionRange)
@@ -351,8 +355,6 @@ function AfterPlugin() {
           .moveOffsetsTo(compositionRange.anchorOffset)
           .insertText(nonEnterPrefix)
         if (hasEnterSuffixRegExp.test(compositionData)) {
-          // adjust for the fact that we removed the "enter" from the text
-          // change.move(nonEnterPrefix.length - compositionData.length)
           const enterEvent = {
             target: event.target,
             type: 'keydown',
@@ -363,13 +365,12 @@ function AfterPlugin() {
             shiftKey: null
           }
           triggerSyntheticInternalSlateEvent(editor, change)(enterEvent)
-          // We prevent the default event so that the DOM is updated by slate rather than directly by android.
-          // Otherwise, there are conflicts between the updates.
-          // event.preventDefault()
         }
         // Update the composition state
         nextCompositionRange = change.value.selection
       } else {
+        // If the compositionData is null, then we are in a text-deletion input event.
+
         // We delete the difference between the current native selection and the composition range.
         const deletionRange = Range.create({
           anchorKey: currentSelection.anchorKey,
@@ -380,6 +381,7 @@ function AfterPlugin() {
         change
           .deleteAtRange(deletionRange)
           .select(currentSelection)
+
         // Now update the compositionRange to contain the rest of the current word.
         const targetKey = compositionRange.focusKey
         const targetOffset = compositionRange.focusOffset
