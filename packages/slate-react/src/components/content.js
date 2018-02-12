@@ -17,7 +17,6 @@ import {
   IS_ANDROID,
   SUPPORTED_EVENTS
 } from '../constants/environment'
-import { findDOMNode } from 'react-dom'
 import { safelyComputeCompositionRange, setCompositionState } from '../utils/android-helpers'
 
 /**
@@ -185,8 +184,8 @@ class Content extends React.Component {
     //   })
     // })
 
-    // COMPAT: Restrict scope of `beforeinput` to mobile.
-    if ((IS_IOS || IS_ANDROID) && SUPPORTED_EVENTS.beforeinput) {
+    // COMPAT: Restrict scope of `beforeinput` to iOS.
+    if (IS_IOS && SUPPORTED_EVENTS.beforeinput) {
       this.element.addEventListener('beforeinput', this.onNativeBeforeInput)
     }
 
