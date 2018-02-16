@@ -11,7 +11,12 @@ import {
   SUPPORTED_EVENTS
 } from '../constants/environment'
 import findNode from '../utils/find-node'
-import { isSyntheticInternalSlate, updateCompositionData } from '../utils/android-helpers'
+import {
+  isSyntheticInternalSlate,
+  safelyComputeCompositionRange,
+  setCompositionState,
+  updateCompositionState,
+} from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -141,7 +146,7 @@ function BeforePlugin() {
     isComposing = true
     compositionCount++
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor)
+      updateCompositionState(event, change, editor)
     }
 
     // HACK: we need to re-render the editor here so that it will update its
@@ -162,7 +167,7 @@ function BeforePlugin() {
 
   function onCompositionUpdate(event, change, editor) {
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor)
+      updateCompositionState(event, change, editor)
     }
 
     debug('onCompositionUpdate', { event })
@@ -178,7 +183,7 @@ function BeforePlugin() {
 
   function onCompositionEnd(event, change, editor) {
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor, null)
+      updateCompositionState(event, change, editor, null)
     }
     const n = compositionCount
 
@@ -397,7 +402,7 @@ function BeforePlugin() {
 
   function onKeyDown(event, change, editor) {
     if (IS_ANDROID) {
-      updateCompositionData(event, change, editor, null)
+      updateCompositionState(event, change, editor, null)
 
       if (HOTKEYS.SPLIT_BLOCK(event) && !isSyntheticInternalSlate(event)) {
         // only process synthetic split block events so that the logic is consistent across android API's.
@@ -459,6 +464,12 @@ function BeforePlugin() {
     // Save the new `activeElement`.
     const window = getWindow(event.target)
     activeElement = window.document.activeElement
+
+    if (IS_ANDROID) {
+      const { value } = change
+      const compositionRange = safelyComputeCompositionRange(event, change)
+      setCompositionState(editor, compositionRange, null, value.document)
+    }
 
     debug('onSelect', { event })
   }

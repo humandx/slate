@@ -18,7 +18,7 @@ import {
   SUPPORTED_EVENTS
 } from '../constants/environment'
 import { findDOMNode } from 'react-dom'
-import { setCompositionState } from '../utils/android-helpers'
+import { safelyComputeCompositionRange, setCompositionState } from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -540,8 +540,8 @@ class Content extends React.Component {
     if (IS_ANDROID) {
       const { editor } = this.props
       const { value } = editor
-      // TO DO: Consolidate these composition state updates.
-      editor.tmp._androidInputState.compositionRange = findRange(window.getSelection(), value)
+      const compositionRange = safelyComputeCompositionRange(event, value.change())
+      setCompositionState(editor, compositionRange, null, value.document)
     }
 
     this.props.onSelect(event)
@@ -557,8 +557,7 @@ class Content extends React.Component {
     if (IS_ANDROID) {
       const { editor } = this.props
       const { value } = editor
-      const window = getWindow(event.target)
-      const compositionRange = findRange(window.getSelection(), value)
+      const compositionRange = safelyComputeCompositionRange(event, value.change())
       const compositionData = event.data
       setCompositionState(editor, compositionRange, compositionData, value.document)
     }
