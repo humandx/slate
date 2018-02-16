@@ -168,6 +168,8 @@ function BeforePlugin() {
   function onCompositionUpdate(event, change, editor) {
     if (IS_ANDROID) {
       updateCompositionState(event, change, editor)
+      isComposing = true
+      editor.setState({ isComposing: true })
     }
 
     debug('onCompositionUpdate', { event })
@@ -388,7 +390,6 @@ function BeforePlugin() {
     if (isComposing && !IS_ANDROID) return true
     if (change.value.isBlurred) return true
 
-    if (IS_ANDROID) event.preventDefault()
     debug('onInput', { event })
   }
 

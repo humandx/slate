@@ -176,6 +176,10 @@ class Editor extends React.Component {
     // })
   }
 
+  shouldComponentUpdate(nextProps, nextState) {
+    return !nextState.isComposing || !IS_ANDROID
+  }
+
   /**
    * When the component updates, flush any temporary change.
    */
