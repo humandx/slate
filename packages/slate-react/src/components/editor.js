@@ -177,7 +177,10 @@ class Editor extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !nextState.isComposing || !IS_ANDROID
+    const { anchorKey } = this.props.value.selection
+    const newAnchorKey = nextProps.value.selection.anchorKey
+    return newAnchorKey !== anchorKey || !IS_ANDROID
+    //return !nextState.isComposingNode || !IS_ANDROID
   }
 
   /**
