@@ -8,6 +8,7 @@ import findRange from './utils/find-range'
 import getEventRange from './utils/get-event-range'
 import getEventTransfer from './utils/get-event-transfer'
 import setEventTransfer from './utils/set-event-transfer'
+import { triggerSyntheticInternalSlateEvent } from './utils/android-helpers'
 
 /**
  * Export.
@@ -25,6 +26,7 @@ export {
   getEventRange,
   getEventTransfer,
   setEventTransfer,
+  triggerSyntheticInternalSlateEvent,
 }
 
 export default {
@@ -37,4 +39,5 @@ export default {
   getEventRange,
   getEventTransfer,
   setEventTransfer,
+  triggerSyntheticInternalSlateEvent,
 }
