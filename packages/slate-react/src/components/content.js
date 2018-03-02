@@ -17,7 +17,6 @@ import {
   IS_ANDROID,
   SUPPORTED_EVENTS
 } from '../constants/environment'
-import { isSyntheticInternalSlate, setCompositionState } from '../utils/android-helpers'
 
 /**
  * Debug.
@@ -282,8 +281,8 @@ class Content extends React.Component {
       'onCompositionEnd',
       'onInput',
     ]
-    const isKeyboard = (handler) => KeyboardEvents.includes(handler)
-    if (IS_ANDROID && isKeyboard(handler) && !isSyntheticInternalSlate(event)) return
+    const shouldIgnoreAndroidEvent = (handler) => KeyboardEvents.includes(handler)
+    if (IS_ANDROID && shouldIgnoreAndroidEvent(handler)) return
 
     // COMPAT: Composition events can change the DOM out of under React, so we
     // increment this key to ensure that a full re-render happens. (2017/10/16)
