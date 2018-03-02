@@ -31,7 +31,7 @@ const KeyboardEvents = [
   'onCompositionEnd',
   'onInput',
 ]
-const shouldIgnoreAndroidEvent = (handler) => KeyboardEvents.includes(handler)
+const shouldIgnoreAndroidEvent = (event) => KeyboardEvents.includes(event)
 
 /**
  * Content.
