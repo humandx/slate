@@ -25,6 +25,13 @@ import {
  */
 
 const debug = Debug('slate:content')
+const KeyboardEvents = [
+  'onCompositionStart',
+  'onCompositionUpdate',
+  'onCompositionEnd',
+  'onInput',
+]
+const shouldIgnoreAndroidEvent = (event) => KeyboardEvents.includes(event)
 
 /**
  * Content.
@@ -274,6 +281,10 @@ class Content extends React.Component {
 
   onEvent(handler, event) {
     debug('onEvent', handler)
+
+    // Ignore Android events which are causing problems for direct inputs into
+    // slate. Currently the `onComposition*` and `onInput` events are ignored.
+    if (IS_ANDROID && shouldIgnoreAndroidEvent(handler)) return
 
     // COMPAT: Composition events can change the DOM out of under React, so we
     // increment this key to ensure that a full re-render happens. (2017/10/16)
