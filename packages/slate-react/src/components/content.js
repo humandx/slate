@@ -25,6 +25,13 @@ import {
  */
 
 const debug = Debug('slate:content')
+const KeyboardEvents = [
+  'onCompositionStart',
+  'onCompositionUpdate',
+  'onCompositionEnd',
+  'onInput',
+]
+const shouldIgnoreAndroidEvent = (handler) => KeyboardEvents.includes(handler)
 
 /**
  * Content.
@@ -275,13 +282,6 @@ class Content extends React.Component {
   onEvent(handler, event) {
     debug('onEvent', handler)
 
-    const KeyboardEvents = [
-      'onCompositionStart',
-      'onCompositionUpdate',
-      'onCompositionEnd',
-      'onInput',
-    ]
-    const shouldIgnoreAndroidEvent = (handler) => KeyboardEvents.includes(handler)
     if (IS_ANDROID && shouldIgnoreAndroidEvent(handler)) return
 
     // COMPAT: Composition events can change the DOM out of under React, so we
