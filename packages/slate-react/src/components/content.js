@@ -282,6 +282,8 @@ class Content extends React.Component {
   onEvent(handler, event) {
     debug('onEvent', handler)
 
+    // Ignore Android events which are causing problems for direct inputs into
+    // slate. Currently the `onComposition*` and `onInput` events are ignored.
     if (IS_ANDROID && shouldIgnoreAndroidEvent(handler)) return
 
     // COMPAT: Composition events can change the DOM out of under React, so we
