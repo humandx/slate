@@ -1,4 +1,3 @@
-
 import Block from '../models/block'
 import Inline from '../models/inline'
 import Mark from '../models/mark'
@@ -26,7 +25,7 @@ const Changes = {}
 
 Changes.addMarkByKey = (change, key, offset, length, mark, options = {}) => {
   mark = Mark.create(mark)
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -38,7 +37,7 @@ Changes.addMarkByKey = (change, key, offset, length, mark, options = {}) => {
   const by = offset + length
   let o = 0
 
-  leaves.forEach((leaf) => {
+  leaves.forEach(leaf => {
     const ax = o
     const ay = ax + leaf.text.length
 
@@ -84,7 +83,7 @@ Changes.addMarkByKey = (change, key, offset, length, mark, options = {}) => {
  */
 
 Changes.insertFragmentByKey = (change, key, index, fragment, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
 
   fragment.nodes.forEach((node, i) => {
     change.insertNodeByKey(key, index + i, node)
@@ -107,7 +106,7 @@ Changes.insertFragmentByKey = (change, key, index, fragment, options = {}) => {
  */
 
 Changes.insertNodeByKey = (change, key, index, node, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -137,7 +136,8 @@ Changes.insertNodeByKey = (change, key, index, node, options = {}) => {
  */
 
 Changes.insertTextByKey = (change, key, offset, text, marks, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
+
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -169,23 +169,31 @@ Changes.insertTextByKey = (change, key, offset, text, marks, options = {}) => {
  */
 
 Changes.mergeNodeByKey = (change, key, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
+  const original = document.getDescendant(key)
   const previous = document.getPreviousSibling(key)
 
   if (!previous) {
     throw new Error(`Unable to merge node with key "${key}", no previous key.`)
   }
 
-  const position = previous.kind == 'text' ? previous.text.length : previous.nodes.size
+  const position =
+    previous.object == 'text' ? previous.text.length : previous.nodes.size
 
   change.applyOperation({
     type: 'merge_node',
     value,
     path,
     position,
+    // for undos to succeed we only need the type and data because
+    // these are the only properties that get changed in the merge operation
+    properties: {
+      type: original.type,
+      data: original.data,
+    },
     target: null,
   })
 
@@ -208,7 +216,7 @@ Changes.mergeNodeByKey = (change, key, options = {}) => {
  */
 
 Changes.moveNodeByKey = (change, key, newKey, newIndex, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -241,7 +249,7 @@ Changes.moveNodeByKey = (change, key, newKey, newIndex, options = {}) => {
 
 Changes.removeMarkByKey = (change, key, offset, length, mark, options = {}) => {
   mark = Mark.create(mark)
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -253,7 +261,7 @@ Changes.removeMarkByKey = (change, key, offset, length, mark, options = {}) => {
   const by = offset + length
   let o = 0
 
-  leaves.forEach((leaf) => {
+  leaves.forEach(leaf => {
     const ax = o
     const ay = ax + leaf.text.length
 
@@ -300,10 +308,10 @@ Changes.removeAllMarksByKey = (change, key, options = {}) => {
   const { state } = change
   const { document } = state
   const node = document.getNode(key)
-  const texts = node.kind === 'text' ? [node] : node.getTextsAsArray()
+  const texts = node.object === 'text' ? [node] : node.getTextsAsArray()
 
-  texts.forEach((text) => {
-    text.getMarksAsArray().forEach((mark) => {
+  texts.forEach(text => {
+    text.getMarksAsArray().forEach(mark => {
       change.removeMarkByKey(text.key, 0, text.text.length, mark, options)
     })
   })
@@ -319,7 +327,7 @@ Changes.removeAllMarksByKey = (change, key, options = {}) => {
  */
 
 Changes.removeNodeByKey = (change, key, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -350,7 +358,7 @@ Changes.removeNodeByKey = (change, key, options = {}) => {
  */
 
 Changes.removeTextByKey = (change, key, offset, length, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -363,7 +371,7 @@ Changes.removeTextByKey = (change, key, offset, length, options = {}) => {
   const by = offset + length
   let o = 0
 
-  leaves.forEach((leaf) => {
+  leaves.forEach(leaf => {
     const ax = o
     const ay = ax + leaf.text.length
 
@@ -408,7 +416,7 @@ Changes.removeTextByKey = (change, key, offset, length, options = {}) => {
 
 Changes.replaceNodeByKey = (change, key, newNode, options = {}) => {
   newNode = Node.create(newNode)
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const node = document.getNode(key)
@@ -433,10 +441,18 @@ Changes.replaceNodeByKey = (change, key, newNode, options = {}) => {
  *   @property {Boolean} normalize
  */
 
-Changes.setMarkByKey = (change, key, offset, length, mark, properties, options = {}) => {
+Changes.setMarkByKey = (
+  change,
+  key,
+  offset,
+  length,
+  mark,
+  properties,
+  options = {}
+) => {
   mark = Mark.create(mark)
   properties = Mark.createProperties(properties)
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -469,7 +485,7 @@ Changes.setMarkByKey = (change, key, offset, length, mark, properties, options =
 
 Changes.setNodeByKey = (change, key, properties, options = {}) => {
   properties = Node.createProperties(properties)
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
@@ -503,12 +519,17 @@ Changes.splitNodeByKey = (change, key, position, options = {}) => {
   const { value } = change
   const { document } = value
   const path = document.getPath(key)
+  const node = document.getDescendantAtPath(path)
 
   change.applyOperation({
     type: 'split_node',
     value,
     path,
     position,
+    properties: {
+      type: node.type,
+      data: node.data,
+    },
     target,
   })
 
@@ -528,27 +549,39 @@ Changes.splitNodeByKey = (change, key, position, options = {}) => {
  *   @property {Boolean} normalize
  */
 
-Changes.splitDescendantsByKey = (change, key, textKey, textOffset, options = {}) => {
+Changes.splitDescendantsByKey = (
+  change,
+  key,
+  textKey,
+  textOffset,
+  options = {}
+) => {
   if (key == textKey) {
     change.splitNodeByKey(textKey, textOffset, options)
     return
   }
 
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
 
   const text = document.getNode(textKey)
   const ancestors = document.getAncestors(textKey)
-  const nodes = ancestors.skipUntil(a => a.key == key).reverse().unshift(text)
+  const nodes = ancestors
+    .skipUntil(a => a.key == key)
+    .reverse()
+    .unshift(text)
   let previous
   let index
 
-  nodes.forEach((node) => {
+  nodes.forEach(node => {
     const prevIndex = index == null ? null : index
     index = previous ? node.nodes.indexOf(previous) + 1 : textOffset
     previous = node
-    change.splitNodeByKey(node.key, index, { normalize: false, target: prevIndex })
+    change.splitNodeByKey(node.key, index, {
+      normalize: false,
+      target: prevIndex,
+    })
   })
 
   if (normalize) {
@@ -611,7 +644,7 @@ Changes.unwrapBlockByKey = (change, key, properties, options) => {
  */
 
 Changes.unwrapNodeByKey = (change, key, options = {}) => {
-  const { normalize = true } = options
+  const normalize = change.getFlag('normalize', options)
   const { value } = change
   const { document } = value
   const parent = document.getParent(key)
@@ -625,26 +658,24 @@ Changes.unwrapNodeByKey = (change, key, options = {}) => {
   const parentIndex = parentParent.nodes.indexOf(parent)
 
   if (parent.nodes.size === 1) {
-    change.moveNodeByKey(key, parentParent.key, parentIndex, { normalize: false })
+    change.moveNodeByKey(key, parentParent.key, parentIndex, {
+      normalize: false,
+    })
     change.removeNodeByKey(parent.key, options)
-  }
-
-  else if (isFirst) {
+  } else if (isFirst) {
     // Just move the node before its parent.
     change.moveNodeByKey(key, parentParent.key, parentIndex, options)
-  }
-
-  else if (isLast) {
+  } else if (isLast) {
     // Just move the node after its parent.
     change.moveNodeByKey(key, parentParent.key, parentIndex + 1, options)
-  }
-
-  else {
+  } else {
     // Split the parent.
     change.splitNodeByKey(parent.key, index, { normalize: false })
 
     // Extract the node in between the splitted parent.
-    change.moveNodeByKey(key, parentParent.key, parentIndex + 1, { normalize: false })
+    change.moveNodeByKey(key, parentParent.key, parentIndex + 1, {
+      normalize: false,
+    })
 
     if (normalize) {
       change.normalizeNodeByKey(parentParent.key)
@@ -711,12 +742,12 @@ Changes.wrapNodeByKey = (change, key, parent) => {
   parent = Node.create(parent)
   parent = parent.set('nodes', parent.nodes.clear())
 
-  if (parent.kind == 'block') {
+  if (parent.object == 'block') {
     change.wrapBlockByKey(key, parent)
     return
   }
 
-  if (parent.kind == 'inline') {
+  if (parent.object == 'inline') {
     change.wrapInlineByKey(key, parent)
     return
   }
