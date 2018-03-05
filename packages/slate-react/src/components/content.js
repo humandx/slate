@@ -377,16 +377,6 @@ class Content extends React.Component {
     if (this.props.readOnly) return
     if (!this.isInEditor(event.target)) return
 
-<<<<<<< HEAD
-    const [ targetRange ] = event.getTargetRanges()
-    if (!targetRange) return
-
-    const { editor } = this.props
-
-    switch (event.inputType) {
-      case 'deleteContentBackward': {
-        event.preventDefault()
-=======
     const [targetRange] = event.getTargetRanges()
     if (!targetRange) return
 
@@ -398,15 +388,12 @@ class Content extends React.Component {
 
         const range = findRange(targetRange, editor.value)
         editor.change(change => change.deleteAtRange(range))
->>>>>>> 6678245fba1965d971b32408a5800b892b8854a7
         break
       }
 
       case 'insertLineBreak': // intentional fallthru
       case 'insertParagraph': {
         event.preventDefault()
-<<<<<<< HEAD
-=======
         const range = findRange(targetRange, editor.value)
 
         editor.change(change => {
@@ -416,7 +403,6 @@ class Content extends React.Component {
             change.splitBlockAtRange(range)
           }
         })
->>>>>>> 6678245fba1965d971b32408a5800b892b8854a7
         break
       }
 
@@ -426,23 +412,6 @@ class Content extends React.Component {
         // `dataTransfer` should have the text for the `insertReplacementText`
         // input type, but Safari uses `insertText` for spell check replacements
         // and sets `data` to `null`.
-<<<<<<< HEAD
-        const text = event.data == null
-          ? event.dataTransfer.getData('text/plain')
-          : event.data
-
-        if (text == null) return
-
-        event.preventDefault()
-
-        const { value } = editor
-        const { selection } = value
-        const range = findRange(targetRange, value)
-
-        editor.change((change) => {
-          change.insertTextAtRange(range, text, selection.marks)
-
-=======
         const text =
           event.data == null
             ? event.dataTransfer.getData('text/plain')
@@ -459,7 +428,6 @@ class Content extends React.Component {
         editor.change(change => {
           change.insertTextAtRange(range, text, selection.marks)
 
->>>>>>> 6678245fba1965d971b32408a5800b892b8854a7
           // If the text was successfully inserted, and the selection had marks
           // on it, unset the selection's marks.
           if (selection.marks && value.document != change.value.document) {
