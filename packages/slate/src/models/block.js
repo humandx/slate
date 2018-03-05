@@ -1,4 +1,3 @@
-
 /**
  * Prevent circular dependencies.
  */
@@ -10,6 +9,7 @@ import './document'
  */
 
 import isPlainObject from 'is-plain-object'
+import logger from 'slate-dev-logger'
 import { List, Map, Record } from 'immutable'
 
 import MODEL_TYPES from '../constants/model-types'
@@ -37,7 +37,6 @@ const DEFAULTS = {
  */
 
 class Block extends Record(DEFAULTS) {
-
   /**
    * Create a new `Block` from `attrs`.
    *
@@ -58,7 +57,9 @@ class Block extends Record(DEFAULTS) {
       return Block.fromJSON(attrs)
     }
 
-    throw new Error(`\`Block.create\` only accepts objects, strings or blocks, but you passed it: ${attrs}`)
+    throw new Error(
+      `\`Block.create\` only accepts objects, strings or blocks, but you passed it: ${attrs}`
+    )
   }
 
   /**
@@ -74,7 +75,9 @@ class Block extends Record(DEFAULTS) {
       return list
     }
 
-    throw new Error(`\`Block.createList\` only accepts arrays or lists, but you passed it: ${attrs}`)
+    throw new Error(
+      `\`Block.createList\` only accepts arrays or lists, but you passed it: ${attrs}`
+    )
   }
 
   /**
@@ -141,13 +144,21 @@ class Block extends Record(DEFAULTS) {
   }
 
   /**
-   * Get the node's kind.
+   * Object.
    *
    * @return {String}
    */
 
-  get kind() {
+  get object() {
     return 'block'
+  }
+
+  get kind() {
+    logger.deprecate(
+      'slate@0.32.0',
+      'The `kind` property of Slate objects has been renamed to `object`.'
+    )
+    return this.object
   }
 
   /**
@@ -179,7 +190,7 @@ class Block extends Record(DEFAULTS) {
 
   toJSON(options = {}) {
     const object = {
-      kind: this.kind,
+      object: this.object,
       type: this.type,
       isVoid: this.isVoid,
       data: this.data.toJSON(),
@@ -200,7 +211,6 @@ class Block extends Record(DEFAULTS) {
   toJS(options) {
     return this.toJSON(options)
   }
-
 }
 
 /**
@@ -213,7 +223,7 @@ Block.prototype[MODEL_TYPES.BLOCK] = true
  * Mix in `Node` methods.
  */
 
-Object.getOwnPropertyNames(Node.prototype).forEach((method) => {
+Object.getOwnPropertyNames(Node.prototype).forEach(method => {
   if (method == 'constructor') return
   Block.prototype[method] = Node.prototype[method]
 })

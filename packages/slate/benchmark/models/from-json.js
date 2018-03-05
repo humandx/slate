@@ -2,22 +2,22 @@
 
 import { Value } from '../..'
 
-export default function (json) {
+export default function(json) {
   Value.fromJSON(json)
 }
 
 export const input = {
   document: {
     nodes: Array.from(Array(10)).map(() => ({
-      kind: 'block',
+      object: 'block',
       type: 'quote',
       nodes: [
         {
-          kind: 'block',
+          object: 'block',
           type: 'paragraph',
           nodes: [
             {
-              kind: 'text',
+              object: 'text',
               leaves: [
                 {
                   text: 'This is editable ',
@@ -35,12 +35,12 @@ export const input = {
                 },
                 {
                   text: ' better than a textarea!',
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }))
-  }
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    })),
+  },
 }

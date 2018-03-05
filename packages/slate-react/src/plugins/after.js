@@ -1,4 +1,3 @@
-
 import Base64 from 'slate-base64-serializer'
 import Debug from 'debug'
 import Plain from 'slate-plain-serializer'
@@ -6,6 +5,7 @@ import React from 'react'
 import getWindow from 'get-window'
 import { Block, Inline, Text } from 'slate'
 
+import { IS_IOS } from '../constants/environment'
 import EVENT_HANDLERS from '../constants/event-handlers'
 import HOTKEYS from '../constants/hotkeys'
 import Content from '../components/content'
@@ -224,9 +224,11 @@ function AfterPlugin() {
       selection.endKey == target.endKey &&
       selection.endOffset < target.endOffset
     ) {
-      target = target.move(selection.startKey == selection.endKey
-        ? 0 - selection.endOffset + selection.startOffset
-        : 0 - selection.endOffset)
+      target = target.move(
+        selection.startKey == selection.endKey
+          ? 0 - selection.endOffset + selection.startOffset
+          : 0 - selection.endOffset
+      )
     }
 
     if (isDraggingInternally) {
@@ -251,12 +253,12 @@ function AfterPlugin() {
         if (n) change.collapseToStartOf(n)
       }
 
-      text
-        .split('\n')
-        .forEach((line, i) => {
+      if (text) {
+        text.split('\n').forEach((line, i) => {
           if (i > 0) change.splitBlock()
           change.insertText(line)
         })
+      }
     }
 
     if (type == 'fragment') {
@@ -264,11 +266,11 @@ function AfterPlugin() {
     }
 
     if (type == 'node' && Block.isBlock(node)) {
-      change.insertBlock(node).removeNodeByKey(node.key)
+      change.insertBlock(node.regenerateKey()).removeNodeByKey(node.key)
     }
 
     if (type == 'node' && Inline.isInline(node)) {
-      change.insertInline(node).removeNodeByKey(node.key)
+      change.insertInline(node.regenerateKey()).removeNodeByKey(node.key)
     }
 
     // COMPAT: React's onSelect event breaks after an onDrop event
@@ -279,11 +281,13 @@ function AfterPlugin() {
     const el = findDOMNode(focusNode, window)
     if (!el) return
 
-    el.dispatchEvent(new MouseEvent('mouseup', {
-      view: window,
-      bubbles: true,
-      cancelable: true
-    }))
+    el.dispatchEvent(
+      new MouseEvent('mouseup', {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+      })
+    )
   }
 
   /**
@@ -315,11 +319,12 @@ function AfterPlugin() {
     let start = 0
     let end = 0
 
-    const leaf = leaves.find((r) => {
-      start = end
-      end += r.text.length
-      if (end >= point.offset) return true
-    }) || lastLeaf
+    const leaf =
+      leaves.find(r => {
+        start = end
+        end += r.text.length
+        if (end >= point.offset) return true
+      }) || lastLeaf
 
     // Get the text information.
     const { text } = leaf
@@ -341,12 +346,12 @@ function AfterPlugin() {
     // Determine what the selection should be after changing the text.
     const delta = textContent.length - text.length
     const corrected = selection.collapseToEnd().move(delta)
-    const entire = selection.moveAnchorTo(point.key, start).moveFocusTo(point.key, end)
+    const entire = selection
+      .moveAnchorTo(point.key, start)
+      .moveFocusTo(point.key, end)
 
     // Change the current value to have the leaf's text replaced.
-    change
-      .insertTextAtRange(entire, textContent, leaf.marks)
-      .select(corrected)
+    change.insertTextAtRange(entire, textContent, leaf.marks).select(corrected)
   }
 
   /**
@@ -362,17 +367,20 @@ function AfterPlugin() {
 
     const { value } = change
 
-    if (HOTKEYS.SPLIT_BLOCK(event)) {
+    // COMPAT: In iOS, some of these hotkeys are handled in the
+    // `onNativeBeforeInput` handler of the `<Content>` component in order to
+    // preserve native autocorrect behavior, so they shouldn't be handled here.
+    if (HOTKEYS.SPLIT_BLOCK(event) && !IS_IOS) {
       return value.isInVoid
         ? change.collapseToStartOfNextText()
         : change.splitBlock()
     }
 
-    if (HOTKEYS.DELETE_CHAR_BACKWARD(event)) {
+    if (HOTKEYS.DELETE_CHAR_BACKWARD(event) && !IS_IOS) {
       return change.deleteCharBackward()
     }
 
-    if (HOTKEYS.DELETE_CHAR_FORWARD(event)) {
+    if (HOTKEYS.DELETE_CHAR_FORWARD(event) && !IS_IOS) {
       return change.deleteCharForward()
     }
 
@@ -428,7 +436,8 @@ function AfterPlugin() {
     // browsers won't know what to do.
     if (HOTKEYS.COLLAPSE_CHAR_BACKWARD(event)) {
       const { document, isInVoid, previousText, startText } = value
-      const isPreviousInVoid = previousText && document.hasVoidParent(previousText.key)
+      const isPreviousInVoid =
+        previousText && document.hasVoidParent(previousText.key)
       if (isInVoid || isPreviousInVoid || startText.text == '') {
         event.preventDefault()
         return change.collapseCharBackward()
@@ -446,7 +455,8 @@ function AfterPlugin() {
 
     if (HOTKEYS.EXTEND_CHAR_BACKWARD(event)) {
       const { document, isInVoid, previousText, startText } = value
-      const isPreviousInVoid = previousText && document.hasVoidParent(previousText.key)
+      const isPreviousInVoid =
+        previousText && document.hasVoidParent(previousText.key)
       if (isInVoid || isPreviousInVoid || startText.text == '') {
         event.preventDefault()
         return change.extendCharBackward()
@@ -488,8 +498,9 @@ function AfterPlugin() {
       if (startBlock.isVoid) return
 
       const defaultBlock = startBlock
-      const defaultMarks = document.getMarksAtRange(selection.collapseToStart())
-      const frag = Plain.deserialize(text, { defaultBlock, defaultMarks }).document
+      const defaultMarks = document.getInsertMarksAtRange(selection)
+      const frag = Plain.deserialize(text, { defaultBlock, defaultMarks })
+        .document
       change.insertFragment(frag)
     }
   }
@@ -614,10 +625,14 @@ function AfterPlugin() {
 
   function renderNode(props) {
     const { attributes, children, node } = props
-    if (node.kind != 'block' && node.kind != 'inline') return
-    const Tag = node.kind == 'block' ? 'div' : 'span'
+    if (node.object != 'block' && node.object != 'inline') return
+    const Tag = node.object == 'block' ? 'div' : 'span'
     const style = { position: 'relative' }
-    return <Tag {...attributes} style={style}>{children}</Tag>
+    return (
+      <Tag {...attributes} style={style}>
+        {children}
+      </Tag>
+    )
   }
 
   /**
@@ -631,7 +646,7 @@ function AfterPlugin() {
     const { editor, node } = props
     if (!editor.props.placeholder) return
     if (editor.state.isComposing) return
-    if (node.kind != 'block') return
+    if (node.object != 'block') return
     if (!Text.isTextList(node.nodes)) return
     if (node.text != '') return
     if (editor.value.document.getBlocks().size > 1) return
