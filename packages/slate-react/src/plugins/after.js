@@ -109,7 +109,9 @@ function AfterPlugin() {
         if (hasVoidParent) {
           change.moveToStartOfNextText()
         } else {
-          change.splitBlockAtRange(range)
+          // COMPAT: For HDx purposes, we only deal with lists right now and
+          // This causes a double ENTER.
+          // change.splitBlockAtRange(range)
         }
 
         return
