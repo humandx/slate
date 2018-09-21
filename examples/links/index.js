@@ -32,6 +32,21 @@ function unwrapLink(change) {
   change.unwrapInline('link')
 }
 
+function LinkComponent(props) {
+  const linkStyle = {
+    backgroundColor: "lightblue",
+    textAlign: "center",
+    borderRadius: "10px",
+    width: "60%",
+    margin: "auto",
+  }
+  return <div style={linkStyle}>
+    <span>Link: {props.href}</span>
+    <div style={{width:"50%", margin:"auto",}}><input /></div>
+    <div>Submit</div>
+  </div>
+}
+
 /**
  * The links example.
  *
@@ -100,9 +115,14 @@ class Links extends React.Component {
         const { data } = node
         const href = data.get('href')
         return (
-          <a {...attributes} href={href}>
-            {children}
-          </a>
+          <div>
+            <div>
+            <a {...attributes} href={href}>
+              {children}
+            </a>
+            </div>
+            <LinkComponent href={href}/>
+          </div>
         )
       }
     }
